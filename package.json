@@ -1,0 +1,53 @@
+{
+  "name": "ibm-imam-cli",
+  "version": "0.0.1",
+  "description": "Library to use IBM Metadata Asset Manager from the command-line",
+  "main": "./index.js",
+  "files": [
+    "index.js",
+    "docs",
+    "utils",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "xmldom": ">=0.1.22",
+    "xpath": ">=0.0.23"
+  },
+  "devDependencies": {
+    "jsdoc": "^3.4.0",
+    "jshint": "^2.9.1",
+    "mocha": "^2.4.5"
+  },
+  "engines": {
+    "node": ">=4.2.4"
+  },
+  "scripts": {
+    "test": "jshint --exclude ./node_modules/",
+    "doc": "jsdoc -c jsdoc/config.json"
+  },
+  "keywords": [
+    "ibm",
+    "imam",
+    "cli",
+    "command-line",
+    "metadata asset manager"
+  ],
+  "author": {
+    "name": "IBM Corp."
+  },
+  "contributors": [
+    {
+      "name": "Christopher Grote",
+      "email": "christopher.grote@uk.ibm.com"
+    }
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.ibm.com/christopher-grote/ibm-imam-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.ibm.com/christopher-grote/ibm-imam-cli/issues"
+  },
+  "homepage": "https://github.ibm.com/christopher-grote/ibm-imam-cli"
+}
