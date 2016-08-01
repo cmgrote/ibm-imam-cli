@@ -620,11 +620,11 @@ exports.loadMetadata = function(filename, callback) {
               } else if (id === "IA_desc") {
                 importDesc = value;
               } else if (id.startsWith("DCN_")) {
-                id = id.substring(4);
-                dcnParams.push({ id: id, displayName: name, value: value });
+                id = id.substring(4); // remove the "DCN_"
+                dcnParams.push({ id: id, displayName: name, value: _prepValue(id, value) });
               } else {
-                id = id.substring(2);
-                params.push({ id: id, displayName: name, value: value });
+                id = id.substring(2); // remove the "P_"
+                params.push({ id: id, displayName: name, value: _prepValue(id, value) });
               }
             }
           }
