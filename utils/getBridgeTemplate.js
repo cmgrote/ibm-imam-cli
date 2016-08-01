@@ -49,4 +49,6 @@ var wb = null;
 for (var i = 0; i < aBridges.length; i++) {
   wb = imamcli.getTemplateForBridge(aBridges[i], wb);
 }
-wb.write('/Users/cgrote/Downloads/ExcelFile.xlsx');
+wb.xlsx.writeFile(argv.file).then(function() {
+  console.log("Created template in: " + argv.file);
+});
