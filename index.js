@@ -22,7 +22,7 @@
  * @requires shelljs
  * @requires fs-extra
  * @requires pretty-data
- * @requires excel4node
+ * @requires exceljs
  */
 
 /**
@@ -35,7 +35,7 @@ const xpath = require('xpath');
 require('shelljs/global');
 const fs = require('fs-extra');
 const pd = require('pretty-data').pd;
-const xl = require('excel4node');
+const Excel = require('exceljs');
 
 exports.ctx = {
   dshome: "",
@@ -67,6 +67,27 @@ const bridgeNameToId = {
   "Teradata Connector": ""
 };
 
+const bridgeNameToVersion = {
+  "Amazon S3": "",
+  "File Connector - Engine Tier": "1.6_1.0",
+  "File Connector - HDFS": "",
+  "HDFS": "",
+  "Hive Connector": "",
+  "IBM Cognos TM1": "",
+  "IBM Cognos TM1 Connector": "",
+  "IBM InfoSphere DB2 Connector": "9.1_1.0",
+  "IBM InfoSphere Master Data Management": "",
+  "IBM InfoSphere Streams": "",
+  "IBM Netezza Connector": "",
+  "JDBC Connector": "",
+  "ODBC Connector": "",
+  "XSD": "",
+  "Oracle Connector 11g": "",
+  "Oracle Connector 12c": "",
+  "Greenplum connector": "",
+  "Teradata Connector": ""
+};
+
 const bridgeNameToConnectorParams = {
   "IBM InfoSphere DB2 Connector": {
     dcName_:            { displayName: "Name", isRequired: true },
@@ -84,28 +105,28 @@ const bridgeNameToConnectorParams = {
 
 const bridgeNameToParams = {
   "IBM InfoSphere DB2 Connector": {
-    includeTables:            { displayName: "Include tables", type: "BOOLEAN", default: true },
-    includeViews:             { displayName: "Include views", type: "BOOLEAN", default: true },
-    includeNicknames:         { displayName: "Include nicknames", type: "BOOLEAN", default: true },
-    includeAliases:           { displayName: "Include aliases", type: "BOOLEAN", default: true },
-    importXmlAsLob:           { displayName: "XML columns as LOBs", type: "BOOLEAN", default: true },
-    IncludeSystemObjects:     { displayName: "Include system objects", type: "BOOLEAN", default: false },
-    ImportAssetsAsDatabases:  { displayName: "Import assets as&#xa;databases from z/OS", type: "BOOLEAN", default: false },
+    includeTables:            { displayName: "Include tables", type: "BOOLEAN", default: "True" },
+    includeViews:             { displayName: "Include views", type: "BOOLEAN", default: "True" },
+    includeNicknames:         { displayName: "Include nicknames", type: "BOOLEAN", default: "True" },
+    includeAliases:           { displayName: "Include aliases", type: "BOOLEAN", default: "True" },
+    importXmlAsLob:           { displayName: "XML columns as LOBs", type: "BOOLEAN", default: "True" },
+    IncludeSystemObjects:     { displayName: "Include system objects", type: "BOOLEAN", default: "False" },
+    ImportAssetsAsDatabases:  { displayName: "Import assets as&#xa;databases from z/OS", type: "BOOLEAN", default: "False" },
     SchemaNameFilter:         { displayName: "Schema name filter" },
-    UseRegexInSchemaNameFilter: { displayName: "Use regular expression in schema&#xa;name filter", type: "BOOLEAN", default: false },
+    UseRegexInSchemaNameFilter: { displayName: "Use regular expression in schema&#xa;name filter", type: "BOOLEAN", default: "False" },
     TableNameFilter:          { displayName: "Table name filter" },
     AssetsToImport:           { displayName: "Assets to import" },
     Asset_description_already_exists: { displayName: "If an asset description already exists", default: "Replace_existing_description" },
-    IgnoreTableAccessErrors:  { displayName: "Ignore table access&#xa;errors", type: "BOOLEAN", default: false },
-    "AP_Host system name":    { displayName: "Host system name", isRequired: true },
+    IgnoreTableAccessErrors:  { displayName: "Ignore table access&#xa;errors", type: "BOOLEAN", default: "False" },
+    "AP_Host system name":    { displayName: "Host system name", isRequired: "True" },
     "AP_Database name":       { displayName: "Database name" }
   },
   "File Connector - Engine Tier": {
     DirectoryContents:        { displayName: "Assets to import" },
-    ImportFileStructure:      { displayName: "Import file structure", type: "BOOLEAN", default: true },
-    IgnoreAccessError:        { displayName: "Ignore metadata access errors", type: "BOOLEAN", default: false },
+    ImportFileStructure:      { displayName: "Import file structure", type: "BOOLEAN", default: "True" },
+    IgnoreAccessError:        { displayName: "Ignore metadata access errors", type: "BOOLEAN", default: "False" },
     Asset_description_already_exists: { displayName: "If an asset description already exists", default: "Replace_existing_description" },
-    Identity_HostSystem:      { displayName: "Host system name", isRequired: true }
+    Identity_HostSystem:      { displayName: "Host system name", isRequired: "True" }
   }
 
 };
@@ -159,10 +180,11 @@ function _callCLI(command) {
           + " -w " + exports.ctx.password
           + " -s " + exports.ctx.services
           + " -p " + exports.ctx.port;
-  if (command.indexOf("import") > -1) {
+  if (command.indexOf("-a import") > -1) {
     cmd = cmd + " -mn " + exports.ctx.engine;
   }
   cmd = cmd + " " + command;
+  //console.log("Calling: " + cmd);
   return exec(cmd, {silent: true, "shell": "/bin/bash"});
 }
 
@@ -205,27 +227,52 @@ ImportParameters.prototype = {
    * Add the specified parameter to the import
    *
    * @function
-   * @param {string} displayName
    * @param {string} id
-   * @param {string} [type]
+   * @param {string} displayName
    * @param {string} value
+   * @param {Node} [location] - the XML location at which to add the parameter
    */
-  addParameter: function(displayName, id, type, value) {
-    
-    var nIP = this.doc.getElementsByTagName("ImportParameters")[0];
+  addParameter: function(id, displayName, value, location) {
     
     var eP = this.doc.createElement("Parameter");
     eP.setAttribute("displayName", displayName);
     eP.setAttribute("id", id);
-    if (type !== undefined && type !== null && type !== "") {
-      eP.setAttribute("type", type);
-    }
-    // TODO: do we need to include the "isRequired" attribute for it to work?
     var eV = this.doc.createElement("value");
-    var val = this.doc.createTextNode(value);
+    var val = this.doc.createTextNode(_getValueOrDefault(value, ""));
     eV.appendChild(val);
     eP.appendChild(eV);
-    nIP.appendChild(eP);
+
+    if (location === undefined || location === null) {
+      var nIP = this.doc.getElementsByTagName("ImportParameters")[0];
+      nIP.appendChild(eP);
+    } else {
+      location.appendChild(eP);
+    }
+
+  },
+
+  /**
+   * Add the specified data connection parameters to the import
+   *
+   * @function
+   * @param {Object[]} dcnParamsList - an array of objects, each object having an 'id', 'displayName' and 'value'
+   */
+  addDataConnection: function(dcnParamsList) {
+
+    var nIP = this.doc.getElementsByTagName("ImportParameters")[0];
+
+    var eCP = this.doc.createElement("CompositeParameter");
+    eCP.setAttribute("isRequired", "true");
+    eCP.setAttribute("displayName", "Data connection");
+    eCP.setAttribute("id", "DataConnection");
+    eCP.setAttribute("type", "DATA_CONNECTION");
+
+    for (var i = 0; i < dcnParamsList.length; i++) {
+      var paramObj = dcnParamsList[i];
+      this.addParameter(paramObj.id, paramObj.displayName, paramObj.value, eCP);
+    }
+
+    nIP.appendChild(eCP);
 
   }
 
@@ -236,18 +283,30 @@ ImportParameters.prototype = {
  *
  * @param {string} name - name of the import area
  * @param {string} description - description of the import area
+ * @param {string} bridgeName - name of the bridge to use for the import area
+ * @param {Object[]} dcnParams - array of data connection parameters (each object having an 'id', 'displayName', and 'value')
+ * @param {Object[]} bridgeParams - array of bridge-specific parameters (each object having an 'id', 'displayName', and 'value')
  */
-exports.createOrUpdateImportArea = function(name, description, type, bCreate) {
+exports.createOrUpdateImportArea = function(name, description, bridgeName, dcnParams, bridgeParams) {
 
-  // TODO: construct XML necessary to actually create the import area
-  var paramFile = "";
+  var aIAs = exports.getImportAreaList();
+  bCreate = (aIAs.indexOf(name) == -1);
 
   var result = ""
   if (bCreate) {
-    result = _callCLI("-a import -i " + name + " -ad " + description + " -id " + description + " -pf " + paramFile);
+    var paramFile = "/tmp/" + name.replace(" ", "_") + ".xml";
+    exports.buildParameterXML(paramFile, bridgeName, dcnParams, bridgeParams);
+    console.log("Creating new import area '" + name + "' with: " + paramFile);
+    result = _callCLI("-a import -i " + name + " -ad \"" + description + "\" -id \"Initial import on " + new Date() + "\" -pf " + paramFile);
+    if (result.code == 0) {
+      rm(paramFile);
+    }
   } else {
+    console.log("Re-importing existing area '" + name + "'.");
     result = _callCLI("-a reimport -i " + name);
   }
+
+  return result;
 
 }
 
@@ -282,53 +341,14 @@ exports.getImportAreaList = function() {
 exports.getTemplateForBridge = function(bridgeName, wb) {
 
   if (wb === undefined || wb === null) {
-    wb = new xl.Workbook({
-      jszip: {
-        compression: 'DEFLATE'
-      },
-      defaultFont: {
-        size: 12,
-        name: 'Calibri',
-        color: '000000'
-      },
-      dateFormat: 'yyyy/m/d hh:mm:ss'});
+    wb = new Excel.Workbook();
   }
-  var ws = wb.addWorksheet(bridgeName, {'sheetFormat': {'defaultColWidth': 16}});
+  var ws = wb.addWorksheet(bridgeName);
 
-  var headerStyle = wb.createStyle({
-    font: {
-      bold: true,
-      color: 'FFFFFF'
-    }, 
-    fill: {
-      type: 'pattern',
-      patternType: 'solid',
-      fgColor: '000000'
-    }
-  });
-  var requiredStyle = wb.createStyle({
-    font: {
-      bold: true,
-      italics: true,
-      color: 'FFFFFF'
-    },
-    fill: {
-      type: 'pattern',
-      patternType: 'solid',
-      fgColor: 'C00000'
-    }
-  });
-  var hiddenStyle = wb.createStyle({
-    font: {
-      size: 8,
-      color: 'FAFAFA'
-    },
-    fill: {
-      type: 'pattern',
-      patternType: 'solid',
-      fgColor: '000000'
-    }
-  });
+  var hiddenStyle = {
+    font: { size: 8, color: {argb: 'FFFAFAFA'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF000000'} }
+  };
 
   if (!bridgeNameToConnectorParams.hasOwnProperty(bridgeName)) {
     throw new Error("Unable to find a bridge named '" + bridgeName + "'.");
@@ -336,64 +356,292 @@ exports.getTemplateForBridge = function(bridgeName, wb) {
   var dcnParams = bridgeNameToConnectorParams[bridgeName];
   var bridgeParams = bridgeNameToParams[bridgeName];
 
-  var aHeader = [];
-
   // First row: output the unique ID of the parameter
   // Second row: output the user-friendly display name (in bold)
   // Third row: any default values / lists of valid values, as an example
 
   var iCellCount = 1;
+
+  // First the Import Area details
+  var iaStyle = {
+    font: { bold: true, color: {argb: 'FFFFFFFF'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF325C80'} }
+  };
+  var requiredStyle = {
+    font: { bold: true, italic: true, color: {argb: 'FFFFFFFF'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF4178BE'} }
+  };
+  var optionalStyle = {
+    font: { italic: true, color: {argb: 'FF325C80'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF7CC7FF'} }
+  };
+  var iAreaStart = 1;
+  var iaDetails = { name: "Name", desc: "Description" };
+  for (var key in iaDetails) {
+    if (iaDetails.hasOwnProperty(key)) {
+
+      var col = ws.getColumn(iCellCount);
+      var cellId = ws.getCell(1, iCellCount);
+      if (iAreaStart == iCellCount) {
+        var cellHeading = ws.getCell(2, iCellCount);
+        cellHeading.style = iaStyle;
+        cellHeading.value = "Import Area";
+      }
+      var cellName = ws.getCell(3, iCellCount);
+
+      cellId.value = "IA_" + key;
+      cellId.style = hiddenStyle;
+
+      cellName.value = iaDetails[key];
+      cellName.style = requiredStyle;
+      col.width = Math.max(16);
+      iCellCount++;
+
+    }
+  }
+  ws.mergeCells(2, iAreaStart, 2, iCellCount - 1);
+
+  // Then the Data Connection details
+  var dcnStyle = {
+    font: { bold: true, color: {argb: 'FFFFFFFF'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF2D660A'} }
+  };
+  requiredStyle = {
+    font: { bold: true, italic: true, color: {argb: 'FFFFFFFF'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF4B8400'} }
+  };
+  optionalStyle = {
+    font: { italic: true, color: {argb: 'FF2D660A'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FFB4E051'} }
+  };
+  iAreaStart = iCellCount;
   for (var key in dcnParams) {
     if (dcnParams.hasOwnProperty(key)) {
 
-      ws.cell(1, iCellCount).string("DCN_" + key).style(hiddenStyle);
-      if (dcnParams[key].hasOwnProperty("isRequired")) {
-        ws.cell(2, iCellCount).string(dcnParams[key].displayName).style(requiredStyle);
-      } else {
-        ws.cell(2, iCellCount).string(dcnParams[key].displayName).style(headerStyle);
+      var col = ws.getColumn(iCellCount);
+      var cellId = ws.getCell(1, iCellCount);
+      if (iAreaStart == iCellCount) {
+        var cellHeading = ws.getCell(2, iCellCount);
+        cellHeading.style = dcnStyle;
+        cellHeading.value = "Data Connection";
       }
-      ws.column(iCellCount).setWidth(Math.max(16, dcnParams[key].displayName.length));
+      var cellName = ws.getCell(3, iCellCount);
+      var cellEx = ws.getCell(4, iCellCount);
+
+      cellId.value = "DCN_" + key;
+      cellId.style = hiddenStyle;
+
+      cellName.value = dcnParams[key].displayName;
+      if (dcnParams[key].hasOwnProperty("isRequired")) {
+        cellName.style = requiredStyle;
+      } else {
+        cellName.style = optionalStyle;
+      }
+      col.width = Math.max(16, dcnParams[key].displayName.length);
       if (dcnParams[key].hasOwnProperty("default")) {
-        ws.cell(3, iCellCount).bool(dcnParams[key].default);
+        cellEx.value = dcnParams[key].default;
       }
       iCellCount++;
 
     }
   }
+  ws.mergeCells(2, iAreaStart, 2, iCellCount - 1);
 
+  // Then the bridge-specific details
+  var bridgeStyle = {
+    font: { bold: true, color: {argb: 'FFFFFFFF'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF006D5D'} }
+  };
+  requiredStyle = {
+    font: { bold: true, italic: true, color: {argb: 'FFFFFFFF'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF008571'} }
+  };
+  optionalStyle = {
+    font: { italic: true, color: {argb: 'FF006D5D'} },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF6EEDD8'} }
+  };
+  iAreaStart = iCellCount;
   for (var key in bridgeParams) {
     if (bridgeParams.hasOwnProperty(key)) {
 
-      ws.cell(1, iCellCount).string("P_" + key).style(hiddenStyle);
-      if (bridgeParams[key].hasOwnProperty("isRequired")) {
-        ws.cell(2, iCellCount).string(bridgeParams[key].displayName).style(requiredStyle);  
-      } else {
-        ws.cell(2, iCellCount).string(bridgeParams[key].displayName).style(headerStyle);
+      var col = ws.getColumn(iCellCount);
+      var cellId = ws.getCell(1, iCellCount);
+      if (iAreaStart == iCellCount) {
+        var cellHeading = ws.getCell(2, iCellCount);
+        cellHeading.style = bridgeStyle;
+        cellHeading.value = "Bridge-specific parameters";
       }
-      ws.column(iCellCount).setWidth(Math.max(16, bridgeParams[key].displayName.length));
+      var cellName = ws.getCell(3, iCellCount);
+      var cellEx = ws.getCell(4, iCellCount);
+
+      cellId.value = "P_" + key;
+      cellId.style = hiddenStyle;
+
+      cellName.value = bridgeParams[key].displayName;
+      if (bridgeParams[key].hasOwnProperty("isRequired")) {
+        cellName.style = requiredStyle;
+      } else {
+        cellName.style = optionalStyle;
+      }
+
+      col.width = Math.max(16, bridgeParams[key].displayName.length);
       if (key === "Asset_description_already_exists") {
-        var alpha = xl.getExcelAlpha(iCellCount);
-        ws.addDataValidation({
+        cellEx.dataValidation = {
           type: 'list',
           allowBlank: true,
-          showDropDown: true,
-          sqref: alpha + '3',
-          formulas: [
-              'Replace_existing_description,Keep_existing_description'
-          ]
-        });
-        ws.cell(3, iCellCount).string('Replace_existing_description');
+          formulae: ['"Replace_existing_description,Keep_existing_description"']
+        };
+        cellEx.value = "Replace_existing_description";
       } else if (bridgeParams[key].hasOwnProperty("default")) {
-        ws.cell(3, iCellCount).bool(bridgeParams[key].default);
+        cellEx.value = bridgeParams[key].default;
       }
       iCellCount++;
 
     }
   }
+  ws.mergeCells(2, iAreaStart, 2, iCellCount - 1);
 
-  ws.row(1).hide();   // Hide the internal ID row
-  ws.row(2).freeze(); // Freeze the human-readable heading
+  ws.getRow(1).hidden = true;
+  ws.views = [
+    {state: 'frozen', xSplit: 0, ySplit: 3 }
+  ];
 
   return wb;
 
 }
+
+/**
+ * Builds the parameter XML needed by imam.sh
+ *
+ * @param {string} filename - name of the XML file to produce
+ * @param {string} bridgeName - name of the bridge for which the XML file needs to be created
+ * @param {Object[]} dcnParamList - array of objects describing the data connection, each with 'id', 'displayName' and 'value' properties
+ * @param {Object[]} paramList - array of objects describing bridge-specific options, each with 'id', 'displayName', and 'value' properties
+ */
+exports.buildParameterXML = function(filename, bridgeName, dcnParamList, paramList) {
+
+  var ip = new ImportParameters(bridgeName, bridgeNameToVersion[bridgeName]);
+  ip.addDataConnection(dcnParamList);
+  for (var i = 0; i < paramList.length; i++) {
+    var param = paramList[i];
+    ip.addParameter(param.id, param.displayName, param.value);
+  }
+
+  var output = pd.xml(new xmldom.XMLSerializer().serializeToString(ip.getImportParametersDoc()));
+
+  var options = {
+    "encoding": 'utf8',
+    "mode": 0o600,
+    "flag": 'w'
+  }
+  fs.writeFileSync(filename, output, options);
+
+}
+
+/**
+ * @private
+ */
+function _prepValue(id, value) {
+  
+  var val = "";
+  
+  if (id === "DirectoryContents") { // file
+    
+    var aVals = value.split(";");
+    for (var i = 0; i < aVals.length; i++) {
+      if (value.endsWith("/")) {
+        val = val + ";folder[" + value + "]";
+      } else {
+        val = val + ";file[" + value + "]";
+      }
+    }
+    if (val.length > 0) {
+      val = val.substring(1);
+    }
+  
+  } else if (id === "AssetsToImport") { // database
+
+    if (value !== undefined && value !== "") {
+      var aVals = value.split(";");
+      for (var i = 0; i < aVals.length; i++) {
+        var oneVal = aVals[i];
+        var count = (oneVal.match(/\|/g) || []).length;
+        if (count == 0) {
+          val = val + ";database[" + oneVal + "]";
+        } else if (count == 1) {
+          val = val + ";schema[" + oneVal + "]";
+        } else if (count == 2) {
+          val = val + ";table[" + oneVal + "]";
+        }
+      }
+      if (val.length > 0) {
+        val = val.substring(1);
+      }
+    }
+
+  } else { // by default, just return the value as-is
+    val = value;
+  }
+  return val;
+}
+
+/**
+ * Loads metadata from all of the sources listed in the specified Excel file -- which should have been produced first by the getTemplateForBridge function
+ *
+ * @see module:ibm-imam-cli~getTemplateForBridge
+ * @param {string} filename - name of the .xlsx file containing host details, credentials, etc
+ * @param {processCallback} callback - callback that handles the response of processing
+ */
+exports.loadMetadata = function(filename, callback) {
+
+  var wb = new Excel.Workbook();
+  wb.xlsx.readFile(filename).then(function() {
+    wb.eachSheet(function(ws, sheetId) {
+
+      var paramIds = ws.getRow(1).values;
+      var paramNames = ws.getRow(3).values;
+
+      ws.eachRow(function(row, rowNumber) {
+        
+        if (rowNumber > 3) { // skip first three rows, these are just header information
+          
+          var importName = "";
+          var importDesc = "";
+          var rowVals = row.values;
+          var dcnParams = [];
+          var params = [];
+          for (var i = 0; i < paramIds.length; i++) {
+            var id = paramIds[i];
+            if (id !== undefined) {
+              var name = paramNames[i];
+              var value = rowVals[i];
+              if (id === "IA_name") {
+                importName = value;
+              } else if (id === "IA_desc") {
+                importDesc = value;
+              } else if (id.startsWith("DCN_")) {
+                id = id.substring(4);
+                dcnParams.push({ id: id, displayName: name, value: value });
+              } else {
+                id = id.substring(2);
+                params.push({ id: id, displayName: name, value: value });
+              }
+            }
+          }
+          callback(exports.createOrUpdateImportArea(importName, importDesc, ws.name, dcnParams, params));
+
+        }
+
+      });
+
+    });
+
+  });
+
+}
+
+/**
+ * This callback is invoked as the result of processing an Excel file.
+ * @callback processCallback
+ * @param {Object} result - the result object, as returned by module:shelljs~exec
+ */
