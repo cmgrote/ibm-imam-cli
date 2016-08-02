@@ -1,2 +1,2 @@
 # ibm-imam-cli
-Library of useful functionality to interface with Metadata Asset Manager from the command-line
+Node.js module for interacting with IBM InfoSphere Metadata Asset Manager command-line interface
