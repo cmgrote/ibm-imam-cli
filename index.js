@@ -88,6 +88,27 @@ const bridgeNameToVersion = {
   "Teradata Connector": ""
 };
 
+const bridgeNameToAssetType = {
+  "Amazon S3": "file",
+  "File Connector - Engine Tier": "file",
+  "File Connector - HDFS": "file",
+  "HDFS": "file",
+  "Hive Connector": "database",
+  "IBM Cognos TM1": "database",
+  "IBM Cognos TM1 Connector": "database",
+  "IBM InfoSphere DB2 Connector": "database",
+  "IBM InfoSphere Master Data Management": "database",
+  "IBM InfoSphere Streams": "file",
+  "IBM Netezza Connector": "database",
+  "JDBC Connector": "database",
+  "ODBC Connector": "database",
+  "XSD": "file",
+  "Oracle Connector 11g": "database",
+  "Oracle Connector 12c": "database",
+  "Greenplum connector": "database",
+  "Teradata Connector": "database"
+};
+
 const bridgeNameToConnectorParams = {
   "IBM InfoSphere DB2 Connector": {
     dcName_:            { displayName: "Name", isRequired: true },
@@ -238,7 +259,13 @@ ImportParameters.prototype = {
     eP.setAttribute("displayName", displayName);
     eP.setAttribute("id", id);
     var eV = this.doc.createElement("value");
-    var val = this.doc.createTextNode(_getValueOrDefault(value, ""));
+    var val = null;
+    if (id.toUpperCase().indexOf("PASSWORD") != -1) {
+      var encrypted = exec(exports.ctx.dshome + "/../../ASBNode/bin/encrypt.sh " + _getValueOrDefault(value, ""), {silent: true, "shell": "/bin/bash"});
+      val = this.doc.createTextNode(encrypted.stdout.replace("\n", ""));
+    } else {
+      val = this.doc.createTextNode(_getValueOrDefault(value, ""));
+    }
     eV.appendChild(val);
     eP.appendChild(eV);
 
@@ -289,8 +316,8 @@ ImportParameters.prototype = {
  */
 exports.createOrUpdateImportArea = function(name, description, bridgeName, dcnParams, bridgeParams) {
 
-  var aIAs = exports.getImportAreaList();
-  bCreate = (aIAs.indexOf(name) == -1);
+  var areas = exports.getImportAreaList();
+  bCreate = (!areas.hasOwnProperty(name));
 
   var result = ""
   if (bCreate) {
@@ -311,23 +338,53 @@ exports.createOrUpdateImportArea = function(name, description, bridgeName, dcnPa
 }
 
 /**
- * Get a list of import areas
+ * Get a list of import areas and their various last update dates
  *
- * @return {string[]} an array of import area names
+ * @return {Object} an object with import area names as keys, and then within each of these a sub-object of timestamps 'importTS', 'analysisTS', 'previewTS', 'shareTS'
  */
 exports.getImportAreaList = function() {
 
-  var result = _callCLI("-a list -t area -nof");
+  var result = _callCLI("-a list -t area");
 
-  var aIAs = [];
-  var aResults = result.split("\n");
-  for (var i = 0; i < aResults.length; i++) {
-    if (aResults[i] !== "") {
-      aIAs.push(aResults[i]);
+  var aAreas = {};
+
+  var aLines = result.stdout.split("\n");
+  var bFoundTableStart = false;
+  var lastName = "";
+  for (var i = 0; i < aLines.length; i++) {
+    var line = aLines[i];
+    if (line.startsWith("=")) {
+      bFoundTableStart = true;
+      continue;
+    }
+    if (bFoundTableStart) {
+      var aTokens = line.split("|");
+      if (aTokens.length > 4) {
+        var name = aTokens[0].trim();
+        var importDate = aTokens[1].trim();
+        var analysisDate = aTokens[2].trim();
+        var previewDate = aTokens[3].trim();
+        var shareDate = aTokens[4].trim();
+        if (!name.startsWith("___")) {
+          if (name.length > 0) {
+            lastName = name;
+            aAreas[name] = {};
+            aAreas[name].importTS = importDate;
+            aAreas[name].analysisTS = analysisDate;
+            aAreas[name].previewTS = previewDate;
+            aAreas[name].shareTS = shareDate;
+          } else {
+            aAreas[lastName].importTS = new Date(aAreas[lastName].importTS + " " + importDate);
+            aAreas[lastName].analysisTS = new Date(aAreas[lastName].analysisTS + " " + analysisDate);
+            aAreas[lastName].previewTS = new Date(aAreas[lastName].previewTS + " " + previewDate);
+            aAreas[lastName].shareTS = new Date(aAreas[lastName].shareTS + " " + shareDate);
+          }
+        }
+      }
     }
   }
 
-  return aIAs;
+  return aAreas;
 
 }
 
@@ -628,7 +685,11 @@ exports.loadMetadata = function(filename, callback) {
               }
             }
           }
-          callback(exports.createOrUpdateImportArea(importName, importDesc, ws.name, dcnParams, params));
+          if (importName !== undefined && importName !== "") {
+            callback(exports.createOrUpdateImportArea(importName, importDesc, ws.name, dcnParams, params), ws.name, dcnParams, params);
+          } else {
+            callback({code: 1, stdout: 'Missing import area name (required).'}, ws.name, dcnParams, params);
+          }
 
         }
 
@@ -640,8 +701,76 @@ exports.loadMetadata = function(filename, callback) {
 
 }
 
+exports.getAssetTypeFromBridgeName = function(bridgeName) {
+  return bridgeNameToAssetType[bridgeName];
+}
+
+exports.getProjectParamsFromMetadataParams = function(assetType, dcnParams, bridgeParams) {
+
+  var projectParams = null;
+
+  if (assetType === "database") {
+
+    var aDbNames = [];
+    var aSchemaNames = [];
+    var aTableNames = [];
+    var dbFilter = "";
+    var schemaFilter = "";
+    var tableFilter = "";
+    var hostname = "";
+
+    for (var i = 0; i < dcnParams.length; i++) {
+      if (dcnParams[i].id === 'Database') {
+        dbFilter = dcnParams[i].value;
+      }
+    }
+    for (var j = 0; j < bridgeParams.length; j++) {
+      if (bridgeParams[j].id === 'AP_Host system name') {
+        hostname = bridgeParams[j].value;
+      } else if (bridgeParams[j].id === 'SchemaNameFilter') {
+        schemaFilter = bridgeParams[j].value;
+      } else if (bridgeParams[j].id === 'TableNameFilter') {
+        tableFilter = bridgeParams[j].value;
+      } else if (bridgeParams[j].id === 'AssetsToImport') {
+        var aObjects = bridgeParams[j].value.split(";");
+        for (var k = 0; k < aObjects.length; k++) {
+          var obj = aObjects[k];
+          if (obj.startsWith("database[")) {
+            aDbNames.push(obj.substring("database[".length, obj.length - 1));
+          } else if (obj.startsWith("schema[")) {
+            aSchemaNames.push(obj.substring("schema[".length, obj.length - 1));
+          } else if (obj.startsWith("table[")) {
+            aTableNames.push(obj.substring("table[".length, obj.length - 1));
+          }
+        }
+      }
+    }
+
+    projectParams = {
+      hostname: hostname,
+      dbNames: aDbNames,
+      schemaNames: aSchemaNames,
+      tableNames: aTableNames,
+      dbFilter: dbFilter,
+      schemaFilter: schemaFilter,
+      tableFilter: tableFilter
+    };
+
+  } else if (assetType === "file") {
+
+    // TODO: handle files
+
+  }
+
+  return projectParams;
+
+}
+
 /**
  * This callback is invoked as the result of processing an Excel file.
  * @callback processCallback
  * @param {Object} result - the result object, as returned by module:shelljs~exec
+ * @param {string} bridgeName - name of the metadata bridge used for the load
+ * @param {Object[]} dcnParams - array of data connection parameter objects that were used to load metadata, each with an 'id', 'displayName' and 'value'
+ * @param {Object[]} bridgeParams - array of bridge-specific parameter objects that were used to load metadata, each with an 'id', 'displayName' and 'value'
  */
