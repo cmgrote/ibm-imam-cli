@@ -171,8 +171,8 @@ exports.setCtx = function(user, password, services, port, engine) {
   }
   exports.ctx.user = user;
   exports.ctx.password = password;
-  if (services === undefined || services === "" || port === undefined || port === "" || engine === undefined || engine === "") {
-    throw new Error("Incomplete connectivity information -- missing services, port or engine tier name.");
+  if (services === undefined || services === "" || port === undefined || port === "") {
+    throw new Error("Incomplete connectivity information -- missing services tier name or port.");
   }
   exports.ctx.services = services;
   exports.ctx.port = port;
@@ -374,10 +374,26 @@ exports.getImportAreaList = function() {
             aAreas[name].previewTS = previewDate;
             aAreas[name].shareTS = shareDate;
           } else {
-            aAreas[lastName].importTS = new Date(aAreas[lastName].importTS + " " + importDate);
-            aAreas[lastName].analysisTS = new Date(aAreas[lastName].analysisTS + " " + analysisDate);
-            aAreas[lastName].previewTS = new Date(aAreas[lastName].previewTS + " " + previewDate);
-            aAreas[lastName].shareTS = new Date(aAreas[lastName].shareTS + " " + shareDate);
+            if (aAreas[lastName].importTS === undefined || aAreas[lastName].importTS === "") {
+              aAreas[lastName].importTS = null;  
+            } else {
+              aAreas[lastName].importTS = new Date(aAreas[lastName].importTS + " " + importDate);
+            }
+            if (aAreas[lastName].analysisTS === undefined || aAreas[lastName].analysisTS === "") {
+              aAreas[lastName].analysisTS = null;
+            } else {
+              aAreas[lastName].analysisTS = new Date(aAreas[lastName].analysisTS + " " + analysisDate);
+            }
+            if (aAreas[lastName].previewTS === undefined || aAreas[lastName].previewTS === "") {
+              aAreas[lastName].previewTS = null;
+            } else {
+              aAreas[lastName].previewTS = new Date(aAreas[lastName].previewTS + " " + previewDate);
+            }
+            if (aAreas[lastName].shareTS === undefined || aAreas[lastName].shareTS === "") {
+              aAreas[lastName].shareTS = null;
+            } else {
+              aAreas[lastName].shareTS = new Date(aAreas[lastName].shareTS + " " + shareDate);
+            }
           }
         }
       }
