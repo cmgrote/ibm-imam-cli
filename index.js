@@ -47,7 +47,7 @@ exports.ctx = {
 };
 
 const bridgeNameToId = {
-  "Amazon S3": "",
+  "Amazon S3": "CAS/AmazonS3",
   "File Connector - Engine Tier": "CAS/LocalFileConnector",
   "File Connector - HDFS": "",
   "HDFS": "",
@@ -68,7 +68,7 @@ const bridgeNameToId = {
 };
 
 const bridgeNameToVersion = {
-  "Amazon S3": "",
+  "Amazon S3": "1.0_1.0",
   "File Connector - Engine Tier": "1.6_1.0",
   "File Connector - HDFS": "",
   "HDFS": "",
@@ -110,6 +110,15 @@ const bridgeNameToAssetType = {
 };
 
 const bridgeNameToConnectorParams = {
+  "Amazon S3": {
+    dcName_:            { displayName: "Name", isRequired: true },
+    dcDescription_:     { displayName: "Descripion", isRequired: true },
+    Region:             { displayName: "Region" },
+    UseCredentialsFile: { displayName: "Use credentials file", type: "BOOLEAN", default: "true" },
+    CredentialsFile:    { displayName: "Credentials file", isRequired: true },
+    Username:           { displayName: "Access key", isRequired: true },
+    Password:           { displayName: "Secret key", isRequired: true }
+  },
   "IBM InfoSphere DB2 Connector": {
     dcName_:            { displayName: "Name", isRequired: true },
     dcDescription_:     { displayName: "Description" },
@@ -125,6 +134,14 @@ const bridgeNameToConnectorParams = {
 };
 
 const bridgeNameToParams = {
+  "Amazon S3": {
+    S3Bucket:                 { displayName: "Amazon S3 bucket", isRequired: true },
+    S3BucketContents:         { displayName: "S3 bucket contents" },
+    ImportFileStructure:      { displayName: "Import file structure", type: "BOOLEAN", default: "True" },
+    IgnoreMetadataAccessErrors: { displayName: "Ignore metadata access errors", type: "BOOLEAN", default: "False" },
+    Asset_description_already_exists: { displayName: "If an asset description already exists", default: "Replace_existing_description" },
+    "AP_Host system name":    { displayName: "Host system name", isRequired: true }
+  },
   "IBM InfoSphere DB2 Connector": {
     includeTables:            { displayName: "Include tables", type: "BOOLEAN", default: "True" },
     includeViews:             { displayName: "Include views", type: "BOOLEAN", default: "True" },
@@ -153,6 +170,19 @@ const bridgeNameToParams = {
 };
 
 /**
+ * Retrieves a list of the bridges that can currently be handled by this module
+ *
+ * @returns {string[]} a list of the bridge names that are currently implemented in the module
+ */
+exports.getImplementedBridges = function() {
+  return [
+    "Amazon S3",
+    "IBM InfoSphere DB2 Connector",
+    "File Connector - Engine Tier"
+  ];
+}
+
+/**
  * Setup the context for IMAM on the particular server being used -- this MUST be run before any other functionality
  * 
  * @param {string} user - the username of a user with the role of Common Metadata Administrator or Common Metadata Importer
@@ -177,18 +207,6 @@ exports.setCtx = function(user, password, services, port, engine) {
   exports.ctx.services = services;
   exports.ctx.port = port;
   exports.ctx.engine = engine;
-}
-
-/**
- * Retrieves a list of the bridges that can currently be handled by this module
- *
- * @returns {string[]} a list of the bridge names that are currently implemented in the module
- */
-exports.getImplementedBridges = function() {
-  return [
-    "IBM InfoSphere DB2 Connector",
-    "File Connector - Engine Tier"
-  ];
 }
 
 /**
@@ -576,7 +594,7 @@ exports.getTemplateForBridge = function(bridgeName, wb) {
 
   ws.getRow(1).hidden = true;
   ws.views = [
-    {state: 'frozen', xSplit: 0, ySplit: 3 }
+    {state: 'frozen', xSplit: 0, ySplit: 3, activeCell: 'A4' }
   ];
 
   return wb;
@@ -618,7 +636,7 @@ function _prepValue(id, value) {
   
   var val = "";
   
-  if (id === "DirectoryContents") { // file
+  if (id === "DirectoryContents" || id === "S3BucketContents") { // file
     
     var aVals = value.split(";");
     for (var i = 0; i < aVals.length; i++) {
