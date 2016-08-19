@@ -11,7 +11,10 @@
   ],
   "dependencies": {
     "xmldom": ">=0.1.22",
-    "xpath": ">=0.0.23"
+    "xpath": ">=0.0.23",
+    "exceljs": ">=0.2.14",
+    "pretty-data": ">=0.40.0",
+    "fs-extra": ">=0.30.0"
   },
   "devDependencies": {
     "jsdoc": "^3.4.0",
