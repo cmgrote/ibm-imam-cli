@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+"use strict";
+
 /**
  * @file Refresh the metadata handled by the specified import areas
  * @license Apache-2.0
@@ -32,11 +34,11 @@
  * ./refreshImportAreas.js -n TEST_IMPORT -t 48 -d hostname:9445 -u isadmin -p isadmin
  */
 
-var imamcli = require('ibm-imam-cli');
+const imamcli = require('ibm-imam-cli');
 
 // Command-line setup
-var yargs = require('yargs');
-var argv = yargs
+const yargs = require('yargs');
+const argv = yargs
     .usage('Usage: $0 -n <name> -t <numberOfDays> -d <host>:<port> -u <user> -p <password>')
     .option('n', {
       alias: 'name',
@@ -72,16 +74,16 @@ var argv = yargs
     .argv;
 
 // Base settings
-var bContinueOnError = true;
-var host_port = argv.domain.split(":");
+const bContinueOnError = true;
+const host_port = argv.domain.split(":");
 
-var importAreaName = argv.name;
-var importAreaRefreshTime = argv.time;
+const importAreaName = argv.name;
+const importAreaRefreshTime = argv.time;
 imamcli.setCtx(argv.deploymentUser, argv.deploymentUserPassword, host_port[0], host_port[1], null);
 
-var areas = imamcli.getImportAreaList();
-var now = new Date();
-var refreshBefore = new Date();
+const areas = imamcli.getImportAreaList();
+const now = new Date();
+let refreshBefore = new Date();
 if (importAreaRefreshTime !== undefined && importAreaRefreshTime !== "") {
   refreshBefore = refreshBefore.setHours(now.getHours() - importAreaRefreshTime);
 }
@@ -89,7 +91,7 @@ if (importAreaRefreshTime !== undefined && importAreaRefreshTime !== "") {
 // If just a single import area name was provided, just refresh that (if needed according to timescale provided)
 if (importAreaName !== undefined && importAreaName !== "") {
   if (areas.hasOwnProperty(importAreaName)) {
-    var sharedTime = areas[importAreaName].shareTS;
+    const sharedTime = areas[importAreaName].shareTS;
     refreshAreaByTimestamp(importAreaName, sharedTime, refreshBefore);
   } else {
     console.error("No import area exists with the name '" + importAreaName + "'.");
@@ -99,10 +101,10 @@ if (importAreaName !== undefined && importAreaName !== "") {
 // Otherwise, refresh all import areas
 } else {
 
-  for (var key in areas) {
+  for (const key in areas) {
     if (areas.hasOwnProperty(key)) {
-      var importAreaName = key;
-      var sharedTime = areas[importAreaName].shareTS;
+      const importAreaName = key;
+      const sharedTime = areas[importAreaName].shareTS;
       refreshAreaByTimestamp(importAreaName, sharedTime, refreshBefore);
     }
   }
@@ -112,7 +114,7 @@ if (importAreaName !== undefined && importAreaName !== "") {
 function refreshAreaByTimestamp(importAreaName, lastShared, refreshIfBefore) {
 
   if (lastShared !== undefined && lastShared !== "") {
-    if (lastShared < refreshBefore) {
+    if (lastShared < refreshIfBefore) {
       runRefresh(importAreaName, bContinueOnError);
     } else {
       console.log("Import area '" + importAreaName + "' already refreshed within the timescale specified.");
@@ -124,8 +126,8 @@ function refreshAreaByTimestamp(importAreaName, lastShared, refreshIfBefore) {
 }
 
 function runRefresh(importAreaName, bContinueOnError) {
-  var result = imamcli.createOrUpdateImportArea(importAreaName);
-  if (result.code == 0) {
+  const result = imamcli.createOrUpdateImportArea(importAreaName);
+  if (result.code === 0) {
     console.log(result.stdout);
   } else {
     console.error(result.stdout);

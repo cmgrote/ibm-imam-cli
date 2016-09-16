@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+"use strict";
+
 /**
  * @file Builds an Excel workbook where each sheet contains the required and optional parameters for an individaul IMAM bridge (required parameters in red)
  * @license Apache-2.0
@@ -26,11 +28,11 @@
  * ./getBridgeTemplate.js -f BridgeTemplate.xlsx
  */
 
-var imamcli = require('../');
+const imamcli = require('../');
 
 // Command-line setup
-var yargs = require('yargs');
-var argv = yargs
+const yargs = require('yargs');
+const argv = yargs
     .usage('Usage: $0 -f <file>')
     .option('f', {
       alias: 'file',
@@ -43,10 +45,10 @@ var argv = yargs
     .wrap(yargs.terminalWidth())
     .argv;
 
-var aBridges = imamcli.getImplementedBridges();
+const aBridges = imamcli.getImplementedBridges();
 
-var wb = null;
-for (var i = 0; i < aBridges.length; i++) {
+let wb = null;
+for (let i = 0; i < aBridges.length; i++) {
   wb = imamcli.getTemplateForBridge(aBridges[i], wb);
 }
 wb.xlsx.writeFile(argv.file).then(function() {

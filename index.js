@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+"use strict";
+
 /**
  * @file Re-usable functions for interacting with IMAM via the command-line
  * @license Apache-2.0
@@ -29,9 +31,7 @@
  * @module ibm-imam-cli
  */
 
-const https = require('https');
 const xmldom = require('xmldom');
-const xpath = require('xpath');
 require('shelljs/global');
 const fs = require('fs-extra');
 const pd = require('pretty-data').pd;
@@ -180,7 +180,7 @@ exports.getImplementedBridges = function() {
     "IBM InfoSphere DB2 Connector",
     "File Connector - Engine Tier"
   ];
-}
+};
 
 /**
  * Setup the context for IMAM on the particular server being used -- this MUST be run before any other functionality
@@ -207,18 +207,18 @@ exports.setCtx = function(user, password, services, port, engine) {
   exports.ctx.services = services;
   exports.ctx.port = port;
   exports.ctx.engine = engine;
-}
+};
 
 /**
  * @private
  */
 function _callCLI(command) {
-  var cmd = exports.ctx.dshome
-          + "/../../ASBNode/bin/imam.sh"
-          + " -u " + exports.ctx.user
-          + " -w " + exports.ctx.password
-          + " -s " + exports.ctx.services
-          + " -p " + exports.ctx.port;
+  let cmd = exports.ctx.dshome +
+          "/../../ASBNode/bin/imam.sh" +
+          " -u " + exports.ctx.user +
+          " -w " + exports.ctx.password +
+          " -s " + exports.ctx.services +
+          " -p " + exports.ctx.port;
   if (command.indexOf("-a import") > -1) {
     cmd = cmd + " -mn " + exports.ctx.engine;
   }
@@ -273,13 +273,13 @@ ImportParameters.prototype = {
    */
   addParameter: function(id, displayName, value, location) {
     
-    var eP = this.doc.createElement("Parameter");
+    const eP = this.doc.createElement("Parameter");
     eP.setAttribute("displayName", displayName);
     eP.setAttribute("id", id);
-    var eV = this.doc.createElement("value");
-    var val = null;
-    if (id.toUpperCase().indexOf("PASSWORD") != -1) {
-      var encrypted = exec(exports.ctx.dshome + "/../../ASBNode/bin/encrypt.sh " + _getValueOrDefault(value, ""), {silent: true, "shell": "/bin/bash"});
+    const eV = this.doc.createElement("value");
+    let val = null;
+    if (id.toUpperCase().indexOf("PASSWORD") !== -1) {
+      const encrypted = exec(exports.ctx.dshome + "/../../ASBNode/bin/encrypt.sh " + _getValueOrDefault(value, ""), {silent: true, "shell": "/bin/bash"});
       val = this.doc.createTextNode(encrypted.stdout.replace("\n", ""));
     } else {
       val = this.doc.createTextNode(_getValueOrDefault(value, ""));
@@ -288,7 +288,7 @@ ImportParameters.prototype = {
     eP.appendChild(eV);
 
     if (location === undefined || location === null) {
-      var nIP = this.doc.getElementsByTagName("ImportParameters")[0];
+      const nIP = this.doc.getElementsByTagName("ImportParameters")[0];
       nIP.appendChild(eP);
     } else {
       location.appendChild(eP);
@@ -304,16 +304,16 @@ ImportParameters.prototype = {
    */
   addDataConnection: function(dcnParamsList) {
 
-    var nIP = this.doc.getElementsByTagName("ImportParameters")[0];
+    const nIP = this.doc.getElementsByTagName("ImportParameters")[0];
 
-    var eCP = this.doc.createElement("CompositeParameter");
+    const eCP = this.doc.createElement("CompositeParameter");
     eCP.setAttribute("isRequired", "true");
     eCP.setAttribute("displayName", "Data connection");
     eCP.setAttribute("id", "DataConnection");
     eCP.setAttribute("type", "DATA_CONNECTION");
 
-    for (var i = 0; i < dcnParamsList.length; i++) {
-      var paramObj = dcnParamsList[i];
+    for (let i = 0; i < dcnParamsList.length; i++) {
+      const paramObj = dcnParamsList[i];
       this.addParameter(paramObj.id, paramObj.displayName, paramObj.value, eCP);
     }
 
@@ -334,16 +334,16 @@ ImportParameters.prototype = {
  */
 exports.createOrUpdateImportArea = function(name, description, bridgeName, dcnParams, bridgeParams) {
 
-  var areas = exports.getImportAreaList();
-  bCreate = (!areas.hasOwnProperty(name));
+  const areas = exports.getImportAreaList();
+  const bCreate = (!areas.hasOwnProperty(name));
 
-  var result = ""
+  let result = "";
   if (bCreate) {
-    var paramFile = "/tmp/" + name.replace(" ", "_") + ".xml";
+    const paramFile = "/tmp/" + name.replace(" ", "_") + ".xml";
     exports.buildParameterXML(paramFile, bridgeName, dcnParams, bridgeParams);
     console.log("Creating new import area '" + name + "' with: " + paramFile);
     result = _callCLI("-a import -i " + name + " -ad \"" + description + "\" -id \"Initial import on " + new Date() + "\" -pf " + paramFile);
-    if (result.code == 0) {
+    if (result.code === 0) {
       rm(paramFile);
     }
   } else {
@@ -353,7 +353,7 @@ exports.createOrUpdateImportArea = function(name, description, bridgeName, dcnPa
 
   return result;
 
-}
+};
 
 /**
  * Get a list of import areas and their various last update dates
@@ -362,27 +362,27 @@ exports.createOrUpdateImportArea = function(name, description, bridgeName, dcnPa
  */
 exports.getImportAreaList = function() {
 
-  var result = _callCLI("-a list -t area");
+  const result = _callCLI("-a list -t area");
 
-  var aAreas = {};
+  const aAreas = {};
 
-  var aLines = result.stdout.split("\n");
-  var bFoundTableStart = false;
-  var lastName = "";
-  for (var i = 0; i < aLines.length; i++) {
-    var line = aLines[i];
+  const aLines = result.stdout.split("\n");
+  let bFoundTableStart = false;
+  let lastName = "";
+  for (let i = 0; i < aLines.length; i++) {
+    const line = aLines[i];
     if (line.startsWith("=")) {
       bFoundTableStart = true;
       continue;
     }
     if (bFoundTableStart) {
-      var aTokens = line.split("|");
+      const aTokens = line.split("|");
       if (aTokens.length > 4) {
-        var name = aTokens[0].trim();
-        var importDate = aTokens[1].trim();
-        var analysisDate = aTokens[2].trim();
-        var previewDate = aTokens[3].trim();
-        var shareDate = aTokens[4].trim();
+        const name = aTokens[0].trim();
+        const importDate = aTokens[1].trim();
+        const analysisDate = aTokens[2].trim();
+        const previewDate = aTokens[3].trim();
+        const shareDate = aTokens[4].trim();
         if (!name.startsWith("___")) {
           if (name.length > 0) {
             lastName = name;
@@ -420,7 +420,7 @@ exports.getImportAreaList = function() {
 
   return aAreas;
 
-}
+};
 
 /**
  * Returns a template (list of headers) for the bridge specified
@@ -434,9 +434,9 @@ exports.getTemplateForBridge = function(bridgeName, wb) {
   if (wb === undefined || wb === null) {
     wb = new Excel.Workbook();
   }
-  var ws = wb.addWorksheet(bridgeName);
+  const ws = wb.addWorksheet(bridgeName);
 
-  var hiddenStyle = {
+  const hiddenStyle = {
     font: { size: 8, color: {argb: 'FFFAFAFA'} },
     fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF000000'} }
   };
@@ -444,47 +444,47 @@ exports.getTemplateForBridge = function(bridgeName, wb) {
   if (!bridgeNameToConnectorParams.hasOwnProperty(bridgeName)) {
     throw new Error("Unable to find a bridge named '" + bridgeName + "'.");
   }
-  var dcnParams = bridgeNameToConnectorParams[bridgeName];
-  var bridgeParams = bridgeNameToParams[bridgeName];
+  const dcnParams = bridgeNameToConnectorParams[bridgeName];
+  const bridgeParams = bridgeNameToParams[bridgeName];
 
   // First row: output the unique ID of the parameter
   // Second row: output the user-friendly display name (in bold)
   // Third row: any default values / lists of valid values, as an example
 
-  var iCellCount = 1;
+  let iCellCount = 1;
 
   // First the Import Area details
-  var iaStyle = {
+  const iaStyle = {
     font: { bold: true, color: {argb: 'FFFFFFFF'} },
     fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF325C80'} }
   };
-  var requiredStyle = {
+  const requiredStyleIA = {
     font: { bold: true, italic: true, color: {argb: 'FFFFFFFF'} },
     fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF4178BE'} }
   };
-  var optionalStyle = {
+  /*const optionalStyleIA = {
     font: { italic: true, color: {argb: 'FF325C80'} },
     fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF7CC7FF'} }
-  };
-  var iAreaStart = 1;
-  var iaDetails = { name: "Name", desc: "Description" };
-  for (var key in iaDetails) {
+  };*/
+  let iAreaStart = 1;
+  const iaDetails = { name: "Name", desc: "Description" };
+  for (const key in iaDetails) {
     if (iaDetails.hasOwnProperty(key)) {
 
-      var col = ws.getColumn(iCellCount);
-      var cellId = ws.getCell(1, iCellCount);
-      if (iAreaStart == iCellCount) {
-        var cellHeading = ws.getCell(2, iCellCount);
+      const col = ws.getColumn(iCellCount);
+      const cellId = ws.getCell(1, iCellCount);
+      if (iAreaStart === iCellCount) {
+        const cellHeading = ws.getCell(2, iCellCount);
         cellHeading.style = iaStyle;
         cellHeading.value = "Import Area";
       }
-      var cellName = ws.getCell(3, iCellCount);
+      const cellName = ws.getCell(3, iCellCount);
 
       cellId.value = "IA_" + key;
       cellId.style = hiddenStyle;
 
       cellName.value = iaDetails[key];
-      cellName.style = requiredStyle;
+      cellName.style = requiredStyleIA;
       col.width = Math.max(16);
       iCellCount++;
 
@@ -493,40 +493,40 @@ exports.getTemplateForBridge = function(bridgeName, wb) {
   ws.mergeCells(2, iAreaStart, 2, iCellCount - 1);
 
   // Then the Data Connection details
-  var dcnStyle = {
+  const dcnStyle = {
     font: { bold: true, color: {argb: 'FFFFFFFF'} },
     fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF2D660A'} }
   };
-  requiredStyle = {
+  const requiredStyleDCN = {
     font: { bold: true, italic: true, color: {argb: 'FFFFFFFF'} },
     fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF4B8400'} }
   };
-  optionalStyle = {
+  const optionalStyleDCN = {
     font: { italic: true, color: {argb: 'FF2D660A'} },
     fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FFB4E051'} }
   };
   iAreaStart = iCellCount;
-  for (var key in dcnParams) {
+  for (const key in dcnParams) {
     if (dcnParams.hasOwnProperty(key)) {
 
-      var col = ws.getColumn(iCellCount);
-      var cellId = ws.getCell(1, iCellCount);
-      if (iAreaStart == iCellCount) {
-        var cellHeading = ws.getCell(2, iCellCount);
+      const col = ws.getColumn(iCellCount);
+      const cellId = ws.getCell(1, iCellCount);
+      if (iAreaStart === iCellCount) {
+        const cellHeading = ws.getCell(2, iCellCount);
         cellHeading.style = dcnStyle;
         cellHeading.value = "Data Connection";
       }
-      var cellName = ws.getCell(3, iCellCount);
-      var cellEx = ws.getCell(4, iCellCount);
+      const cellName = ws.getCell(3, iCellCount);
+      const cellEx = ws.getCell(4, iCellCount);
 
       cellId.value = "DCN_" + key;
       cellId.style = hiddenStyle;
 
       cellName.value = dcnParams[key].displayName;
       if (dcnParams[key].hasOwnProperty("isRequired")) {
-        cellName.style = requiredStyle;
+        cellName.style = requiredStyleDCN;
       } else {
-        cellName.style = optionalStyle;
+        cellName.style = optionalStyleDCN;
       }
       col.width = Math.max(16, dcnParams[key].displayName.length);
       if (dcnParams[key].hasOwnProperty("default")) {
@@ -539,40 +539,40 @@ exports.getTemplateForBridge = function(bridgeName, wb) {
   ws.mergeCells(2, iAreaStart, 2, iCellCount - 1);
 
   // Then the bridge-specific details
-  var bridgeStyle = {
+  const bridgeStyle = {
     font: { bold: true, color: {argb: 'FFFFFFFF'} },
     fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF006D5D'} }
   };
-  requiredStyle = {
+  const requiredStyleBridge = {
     font: { bold: true, italic: true, color: {argb: 'FFFFFFFF'} },
     fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF008571'} }
   };
-  optionalStyle = {
+  const optionalStyleBridge = {
     font: { italic: true, color: {argb: 'FF006D5D'} },
     fill: { type: 'pattern', pattern: 'solid', fgColor: {argb: 'FF6EEDD8'} }
   };
   iAreaStart = iCellCount;
-  for (var key in bridgeParams) {
+  for (const key in bridgeParams) {
     if (bridgeParams.hasOwnProperty(key)) {
 
-      var col = ws.getColumn(iCellCount);
-      var cellId = ws.getCell(1, iCellCount);
-      if (iAreaStart == iCellCount) {
-        var cellHeading = ws.getCell(2, iCellCount);
+      const col = ws.getColumn(iCellCount);
+      const cellId = ws.getCell(1, iCellCount);
+      if (iAreaStart === iCellCount) {
+        const cellHeading = ws.getCell(2, iCellCount);
         cellHeading.style = bridgeStyle;
         cellHeading.value = "Bridge-specific parameters";
       }
-      var cellName = ws.getCell(3, iCellCount);
-      var cellEx = ws.getCell(4, iCellCount);
+      const cellName = ws.getCell(3, iCellCount);
+      const cellEx = ws.getCell(4, iCellCount);
 
       cellId.value = "P_" + key;
       cellId.style = hiddenStyle;
 
       cellName.value = bridgeParams[key].displayName;
       if (bridgeParams[key].hasOwnProperty("isRequired")) {
-        cellName.style = requiredStyle;
+        cellName.style = requiredStyleBridge;
       } else {
-        cellName.style = optionalStyle;
+        cellName.style = optionalStyleBridge;
       }
 
       col.width = Math.max(16, bridgeParams[key].displayName.length);
@@ -599,7 +599,7 @@ exports.getTemplateForBridge = function(bridgeName, wb) {
 
   return wb;
 
-}
+};
 
 /**
  * Builds the parameter XML needed by imam.sh
@@ -611,35 +611,35 @@ exports.getTemplateForBridge = function(bridgeName, wb) {
  */
 exports.buildParameterXML = function(filename, bridgeName, dcnParamList, paramList) {
 
-  var ip = new ImportParameters(bridgeName, bridgeNameToVersion[bridgeName]);
+  const ip = new ImportParameters(bridgeName, bridgeNameToVersion[bridgeName]);
   ip.addDataConnection(dcnParamList);
-  for (var i = 0; i < paramList.length; i++) {
-    var param = paramList[i];
+  for (let i = 0; i < paramList.length; i++) {
+    const param = paramList[i];
     ip.addParameter(param.id, param.displayName, param.value);
   }
 
-  var output = pd.xml(new xmldom.XMLSerializer().serializeToString(ip.getImportParametersDoc()));
+  const output = pd.xml(new xmldom.XMLSerializer().serializeToString(ip.getImportParametersDoc()));
 
-  var options = {
+  const options = {
     "encoding": 'utf8',
     "mode": 0o600,
     "flag": 'w'
-  }
+  };
   fs.writeFileSync(filename, output, options);
 
-}
+};
 
 /**
  * @private
  */
 function _prepValue(id, value) {
   
-  var val = "";
+  let val = "";
   
   if (id === "DirectoryContents" || id === "S3BucketContents") { // file
     
-    var aVals = value.split(";");
-    for (var i = 0; i < aVals.length; i++) {
+    const aVals = value.split(";");
+    for (let i = 0; i < aVals.length; i++) {
       if (value.endsWith("/")) {
         val = val + ";folder[" + value + "]";
       } else {
@@ -653,15 +653,15 @@ function _prepValue(id, value) {
   } else if (id === "AssetsToImport") { // database
 
     if (value !== undefined && value !== "") {
-      var aVals = value.split(";");
-      for (var i = 0; i < aVals.length; i++) {
-        var oneVal = aVals[i];
-        var count = (oneVal.match(/\|/g) || []).length;
-        if (count == 0) {
+      const aVals = value.split(";");
+      for (let i = 0; i < aVals.length; i++) {
+        const oneVal = aVals[i];
+        const count = (oneVal.match(/\|/g) || []).length;
+        if (count === 0) {
           val = val + ";database[" + oneVal + "]";
-        } else if (count == 1) {
+        } else if (count === 1) {
           val = val + ";schema[" + oneVal + "]";
-        } else if (count == 2) {
+        } else if (count === 2) {
           val = val + ";table[" + oneVal + "]";
         }
       }
@@ -685,27 +685,27 @@ function _prepValue(id, value) {
  */
 exports.loadMetadata = function(filename, callback) {
 
-  var wb = new Excel.Workbook();
+  const wb = new Excel.Workbook();
   wb.xlsx.readFile(filename).then(function() {
-    wb.eachSheet(function(ws, sheetId) {
+    wb.eachSheet(function(ws) {
 
-      var paramIds = ws.getRow(1).values;
-      var paramNames = ws.getRow(3).values;
+      const paramIds = ws.getRow(1).values;
+      const paramNames = ws.getRow(3).values;
 
       ws.eachRow(function(row, rowNumber) {
         
         if (rowNumber > 3) { // skip first three rows, these are just header information
           
-          var importName = "";
-          var importDesc = "";
-          var rowVals = row.values;
-          var dcnParams = [];
-          var params = [];
-          for (var i = 0; i < paramIds.length; i++) {
-            var id = paramIds[i];
+          let importName = "";
+          let importDesc = "";
+          const rowVals = row.values;
+          const dcnParams = [];
+          const params = [];
+          for (let i = 0; i < paramIds.length; i++) {
+            let id = paramIds[i];
             if (id !== undefined) {
-              var name = paramNames[i];
-              var value = rowVals[i];
+              const name = paramNames[i];
+              const value = rowVals[i];
               if (id === "IA_name") {
                 importName = value;
               } else if (id === "IA_desc") {
@@ -733,32 +733,32 @@ exports.loadMetadata = function(filename, callback) {
 
   });
 
-}
+};
 
 exports.getAssetTypeFromBridgeName = function(bridgeName) {
   return bridgeNameToAssetType[bridgeName];
-}
+};
 
 exports.getProjectParamsFromMetadataParams = function(assetType, dcnParams, bridgeParams) {
 
-  var projectParams = null;
+  let projectParams = null;
 
   if (assetType === "database") {
 
-    var aDbNames = [];
-    var aSchemaNames = [];
-    var aTableNames = [];
-    var dbFilter = "";
-    var schemaFilter = "";
-    var tableFilter = "";
-    var hostname = "";
+    const aDbNames = [];
+    const aSchemaNames = [];
+    const aTableNames = [];
+    let dbFilter = "";
+    let schemaFilter = "";
+    let tableFilter = "";
+    let hostname = "";
 
-    for (var i = 0; i < dcnParams.length; i++) {
+    for (let i = 0; i < dcnParams.length; i++) {
       if (dcnParams[i].id === 'Database') {
         dbFilter = dcnParams[i].value;
       }
     }
-    for (var j = 0; j < bridgeParams.length; j++) {
+    for (let j = 0; j < bridgeParams.length; j++) {
       if (bridgeParams[j].id === 'AP_Host system name') {
         hostname = bridgeParams[j].value;
       } else if (bridgeParams[j].id === 'SchemaNameFilter') {
@@ -766,9 +766,9 @@ exports.getProjectParamsFromMetadataParams = function(assetType, dcnParams, brid
       } else if (bridgeParams[j].id === 'TableNameFilter') {
         tableFilter = bridgeParams[j].value;
       } else if (bridgeParams[j].id === 'AssetsToImport') {
-        var aObjects = bridgeParams[j].value.split(";");
-        for (var k = 0; k < aObjects.length; k++) {
-          var obj = aObjects[k];
+        const aObjects = bridgeParams[j].value.split(";");
+        for (let k = 0; k < aObjects.length; k++) {
+          const obj = aObjects[k];
           if (obj.startsWith("database[")) {
             aDbNames.push(obj.substring("database[".length, obj.length - 1));
           } else if (obj.startsWith("schema[")) {
@@ -798,7 +798,7 @@ exports.getProjectParamsFromMetadataParams = function(assetType, dcnParams, brid
 
   return projectParams;
 
-}
+};
 
 /**
  * This callback is invoked as the result of processing an Excel file.

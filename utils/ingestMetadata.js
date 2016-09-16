@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+"use strict";
+
 /**
  * @file Ingest the metadata from all hosts described in the provided Excel file.  Some non-obvious notes for the Excel file: under the "Assets to import" heading, different bridges expect different input, but in all cases multiple entries should be semi-colon (;) delimited within the one cell.  For database entries, use the form 'DBNAME|SCHEMANAME|TABLENAME' (or any subset: e.g. just 'DBNAME|SCHEMANAME' to import all tables in that schema), while for file entries use the form '/some/path/' to load all files in that directory (note trailing '/'), or just '/some/path/to/file.ext' to load a single file (note no trailing '/').
  * @license Apache-2.0
@@ -26,11 +28,11 @@
  * ./ingestMetadata.js -f Example.xlsx -e engine.ibm.com -d services:9445 -u isadmin -p isadmin
  */
 
-var imamcli = require('../');
+const imamcli = require('../');
 
 // Command-line setup
-var yargs = require('yargs');
-var argv = yargs
+const yargs = require('yargs');
+const argv = yargs
     .usage('Usage: $0 -f <file>')
     .option('f', {
       alias: 'file',
@@ -67,11 +69,11 @@ var argv = yargs
     .argv;
 
 // Base settings
-var host_port = argv.domain.split(":");
+const host_port = argv.domain.split(":");
 imamcli.setCtx(argv.deploymentUser, argv.deploymentUserPassword, host_port[0], host_port[1], argv.engine);
 
 imamcli.loadMetadata(argv.file, function(results) {
-  if (results.code == 0) {
+  if (results.code === 0) {
     console.log(results.stdout);
   } else {
     console.error(results.stdout);
