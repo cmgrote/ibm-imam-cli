@@ -32,7 +32,7 @@
  */
 
 const xmldom = require('xmldom');
-require('shelljs/global');
+const shell = require('shelljs');
 const fs = require('fs-extra');
 const pd = require('pretty-data').pd;
 const Excel = require('exceljs');
@@ -192,10 +192,10 @@ exports.getImplementedBridges = function() {
  * @param {string} engine - name of the engine tier server
  */
 exports.setCtx = function(user, password, services, port, engine) {
-  if (!test('-f', "/.dshome")) {
+  if (!shell.test('-f', "/.dshome")) {
     throw new Error("Unable to find /.dshome -- this does not appear to be the engine tier.");
   }
-  exports.ctx.dshome = cat("/.dshome").replace("\n", "");
+  exports.ctx.dshome = shell.cat("/.dshome").replace("\n", "");
   if (user === undefined || user === "" || password === undefined || password === "") {
     throw new Error("Incomplete authentication information -- missing username or password (or both).");
   }
@@ -224,7 +224,7 @@ function _callCLI(command) {
   }
   cmd = cmd + " " + command;
   //console.log("Calling: " + cmd);
-  return exec(cmd, {silent: true, "shell": "/bin/bash"});
+  return shell.exec(cmd, {silent: true, "shell": "/bin/bash"});
 }
 
 /**
@@ -279,7 +279,7 @@ ImportParameters.prototype = {
     const eV = this.doc.createElement("value");
     let val = null;
     if (id.toUpperCase().indexOf("PASSWORD") !== -1) {
-      const encrypted = exec(exports.ctx.dshome + "/../../ASBNode/bin/encrypt.sh " + _getValueOrDefault(value, ""), {silent: true, "shell": "/bin/bash"});
+      const encrypted = shell.exec(exports.ctx.dshome + "/../../ASBNode/bin/encrypt.sh " + _getValueOrDefault(value, ""), {silent: true, "shell": "/bin/bash"});
       val = this.doc.createTextNode(encrypted.stdout.replace("\n", ""));
     } else {
       val = this.doc.createTextNode(_getValueOrDefault(value, ""));
@@ -344,7 +344,7 @@ exports.createOrUpdateImportArea = function(name, description, bridgeName, dcnPa
     console.log("Creating new import area '" + name + "' with: " + paramFile);
     result = _callCLI("-a import -i " + name + " -ad \"" + description + "\" -id \"Initial import on " + new Date() + "\" -pf " + paramFile);
     if (result.code === 0) {
-      rm(paramFile);
+      shell.rm(paramFile);
     }
   } else {
     console.log("Re-importing existing area '" + name + "'.");
