@@ -22,24 +22,26 @@
  * @file Refresh the metadata handled by the specified import areas
  * @license Apache-2.0
  * @requires ibm-imam-cli
+ * @requires ibm-iis-commons
  * @requires yargs
  * @example
  * // refreshes all of the metadata from all import areas
- * ./refreshImportAreas.js -d hostname:9445 -u isadmin -p isadmin
+ * ./refreshImportAreas.js
  * @example
  * // refreshes all of the metadata from any import areas not already updated within the last 24 hours
- * ./refreshImportAreas.js -t 24 -d hostname:9445 -u isadmin -p isadmin
+ * ./refreshImportAreas.js -t 24
  * @example
  * // refreshes only the import area named 'TEST_IMPORT', and only if it wasn't already refreshed within the last 48 hours
- * ./refreshImportAreas.js -n TEST_IMPORT -t 48 -d hostname:9445 -u isadmin -p isadmin
+ * ./refreshImportAreas.js -n TEST_IMPORT -t 48
  */
 
 const imamcli = require('ibm-imam-cli');
+const commons = require('ibm-iis-commons');
 
 // Command-line setup
 const yargs = require('yargs');
 const argv = yargs
-    .usage('Usage: $0 -n <name> -t <numberOfDays> -d <host>:<port> -u <user> -p <password>')
+    .usage('Usage: $0 -n <name> -t <numberOfDays>')
     .option('n', {
       alias: 'name',
       describe: 'Name of the Import Area to refresh',
@@ -50,23 +52,10 @@ const argv = yargs
       describe: 'Refresh anything more stale than this time in hours',
       requiresArg: true, type: 'number'
     })
-    .env('DS')
-    .option('d', {
-      alias: 'domain',
-      describe: 'Host and port for invoking IA REST',
-      demand: true, requiresArg: true, type: 'string'
-    })
-    .option('u', {
-      alias: 'deployment-user',
-      describe: 'User for invoking IA REST',
-      demand: true, requiresArg: true, type: 'string',
-      default: "isadmin"
-    })
-    .option('p', {
-      alias: 'deployment-user-password',
-      describe: 'Password for invoking IA REST',
-      demand: true, requiresArg: true, type: 'string',
-      default: "isadmin"
+    .option('a', {
+      alias: 'authfile',
+      describe: 'Authorisation file containing environment context',
+      requiresArg: true, type: 'string'
     })
     .help('h')
     .alias('h', 'help')
@@ -75,13 +64,16 @@ const argv = yargs
 
 // Base settings
 const bContinueOnError = true;
-const host_port = argv.domain.split(":");
 
 const importAreaName = argv.name;
 const importAreaRefreshTime = argv.time;
-imamcli.setCtx(argv.deploymentUser, argv.deploymentUserPassword, host_port[0], host_port[1], null);
 
-const areas = imamcli.getImportAreaList();
+const envCtx = new commons.EnvironmentContext();
+if (argv.authfile !== undefined && argv.authfile !== "") {
+  envCtx.authFile = argv.authfile;
+}
+
+const areas = imamcli.getImportAreaList(envCtx);
 const now = new Date();
 let refreshBefore = new Date();
 if (importAreaRefreshTime !== undefined && importAreaRefreshTime !== "") {
@@ -126,7 +118,7 @@ function refreshAreaByTimestamp(importAreaName, lastShared, refreshIfBefore) {
 }
 
 function runRefresh(importAreaName, bContinueOnError) {
-  const result = imamcli.createOrUpdateImportArea(importAreaName);
+  const result = imamcli.createOrUpdateImportArea(envCtx, importAreaName);
   if (result.code === 0) {
     console.log(result.stdout);
   } else {

@@ -22,13 +22,15 @@
  * @file Ingest the metadata from all hosts described in the provided Excel file.  Some non-obvious notes for the Excel file: under the "Assets to import" heading, different bridges expect different input, but in all cases multiple entries should be semi-colon (;) delimited within the one cell.  For database entries, use the form 'DBNAME|SCHEMANAME|TABLENAME' (or any subset: e.g. just 'DBNAME|SCHEMANAME' to import all tables in that schema), while for file entries use the form '/some/path/' to load all files in that directory (note trailing '/'), or just '/some/path/to/file.ext' to load a single file (note no trailing '/').
  * @license Apache-2.0
  * @requires ibm-imam-cli
+ * @requires ibm-iis-commons
  * @requires yargs
  * @example
- * // ingests all metadata descripted in the file Example.xlsx into the server 'services', using 'engine.ibm.com' as the metadata interchange server
- * ./ingestMetadata.js -f Example.xlsx -e engine.ibm.com -d services:9445 -u isadmin -p isadmin
+ * // ingests all metadata descripted in the file Example.xlsx into the server the script is running on
+ * ./ingestMetadata.js -f Example.xlsx
  */
 
 const imamcli = require('../');
+const commons = require('ibm-iis-commons');
 
 // Command-line setup
 const yargs = require('yargs');
@@ -36,43 +38,25 @@ const argv = yargs
     .usage('Usage: $0 -f <file>')
     .option('f', {
       alias: 'file',
-      describe: 'Path to output file to produce',
-      demand: true, requiresArg: true, type: 'string',
-      default: 'Example.xlsx'
-    })
-    .option('e', {
-      alias: 'engine',
-      describe: 'Fully qualified hostname of the engine tier',
+      describe: 'Path to Excel file containing description of sources',
       demand: true, requiresArg: true, type: 'string'
     })
-    .env('DS')
-    .option('d', {
-      alias: 'domain',
-      describe: 'Host and port for invoking IA REST',
-      demand: true, requiresArg: true, type: 'string'
-    })
-    .option('u', {
-      alias: 'deployment-user',
-      describe: 'User for invoking IA REST',
-      demand: true, requiresArg: true, type: 'string',
-      default: "isadmin"
-    })
-    .option('p', {
-      alias: 'deployment-user-password',
-      describe: 'Password for invoking IA REST',
-      demand: true, requiresArg: true, type: 'string',
-      default: "isadmin"
+    .option('a', {
+      alias: 'authfile',
+      describe: 'Authorisation file containing environment context',
+      requiresArg: true, type: 'string'
     })
     .help('h')
     .alias('h', 'help')
     .wrap(yargs.terminalWidth())
     .argv;
 
-// Base settings
-const host_port = argv.domain.split(":");
-imamcli.setCtx(argv.deploymentUser, argv.deploymentUserPassword, host_port[0], host_port[1], argv.engine);
+const envCtx = new commons.EnvironmentContext();
+if (argv.authfile !== undefined && argv.authfile !== "") {
+  envCtx.authFile = argv.authfile;
+}
 
-imamcli.loadMetadata(argv.file, function(results) {
+imamcli.loadMetadata(envCtx, argv.file, function(results) {
   if (results.code === 0) {
     console.log(results.stdout);
   } else {

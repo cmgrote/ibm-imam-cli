@@ -1,11 +1,12 @@
 {
   "name": "ibm-imam-cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Library to use IBM Metadata Asset Manager from the command-line",
   "main": "./index.js",
   "files": [
     "index.js",
     "docs",
+    "classes",
     "utils",
     "LICENSE"
   ],
@@ -15,7 +16,8 @@
     "exceljs": ">=0.2.24",
     "shelljs": ">=0.7.4",
     "pretty-data": ">=0.40.0",
-    "fs-extra": ">=0.30.0"
+    "fs-extra": ">=0.30.0",
+    "prompt": ">=1.0.0"
   },
   "devDependencies": {
     "jsdoc": "^3.4.0",

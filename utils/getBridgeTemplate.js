@@ -29,6 +29,7 @@
  */
 
 const imamcli = require('../');
+const BridgeFactory = require('../classes/bridge-factory');
 
 // Command-line setup
 const yargs = require('yargs');
@@ -45,7 +46,7 @@ const argv = yargs
     .wrap(yargs.terminalWidth())
     .argv;
 
-const aBridges = imamcli.getImplementedBridges();
+const aBridges = BridgeFactory.getImplementedBridges();
 
 let wb = null;
 for (let i = 0; i < aBridges.length; i++) {
