@@ -555,16 +555,18 @@ const ImamCLI = (function() {
    * @see module:ibm-imam-cli~convertColumnDefinitionsToFieldDefinitions
    * @param {FieldDefinitions} fieldDefinitions - the set of converted field definitions from convertColumnDefinitionsToFieldDefinitions
    * @param {string} tblName - the name of the table for which to get the header line
-   * @param {string} [delimiter] - an optional delimiter to use (by default a |) -- not yet implemented
+   * @param {string} [delimiter] - an optional delimiter to use (by default a |)
    * @returns String with the header line for a data file that will be IMAM-importable
    */
-  // TODO: allow the delimiter to vary...
   const getHeaderLineForTable = function(fieldDefinitions, tblName, delimiter) {
-    //if (typeof delimiter !== 'undefined' && delimiter !== "") {
-    //  return fieldDefinitions[tblName].header.replace(/\|/g, delimiter);
-    //} else {
-      return fieldDefinitions[tblName].header;
-    //}
+    const ucaseTblName = tblName.toUpperCase();
+    if (!fieldDefinitions.hasOwnProperty(ucaseTblName)) {
+      throw new Error("Unable to find table name: " + ucaseTblName);
+    } else if (typeof delimiter !== 'undefined' && delimiter !== "" && delimiter !== "|") {
+      return fieldDefinitions[ucaseTblName].header.replace(/\|/g, delimiter);
+    } else {
+      return fieldDefinitions[ucaseTblName].header;
+    }
   };
 
   return {
