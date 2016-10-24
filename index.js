@@ -38,6 +38,7 @@ const pd = require('pretty-data').pd;
 const Excel = require('exceljs');
 
 const BridgeFactory = require('./classes/bridge-factory');
+const FileSchemaFactory = require('./classes/file-schema-factory');
 const ImportParameters = require('./classes/import-parameters');
 
 const ImamCLI = (function() {
@@ -519,13 +520,62 @@ const ImamCLI = (function() {
   
   };
 
+  /**
+   * Given DDL for defining one or more database tables, converts these into their corresponding IMAM-recognisable data formats
+   *
+   * @see module:ibm-imam-cli~getHeaderLineForTable
+   * @param {string} ddlFile - path to the DDL file containing one or more CREATE TABLE statements
+   * @returns FieldDefinitions with table names as keys, each being a sub-object with a 'header' (String) and 'columns' (String[]) properties
+   */
+  const convertColumnDefinitionsToFieldDefinitions = function(ddlFile) {
+
+    const aCreateTbls = FileSchemaFactory.getCreateTableStatementsFromDDL(ddlFile);
+    const tablesToFields = {};
+
+    for (let i = 0; i < aCreateTbls.length; i++) {
+      const tblObj = FileSchemaFactory.getColumnDefinitionsFromCreateTableStatement(aCreateTbls[i]);
+      tablesToFields[tblObj.table] = {};
+      tablesToFields[tblObj.table].columns = [];
+      let header = "";
+      for (let j = 0; j < tblObj.columns.length; j++) {
+        const colDefn = FileSchemaFactory.convertColumnDefinitionToFileSchemaFieldDefinition(tblObj.columns[j]);
+        header += colDefn + "|";
+        tablesToFields[tblObj.table].columns.push(colDefn);
+      }
+      tablesToFields[tblObj.table].header = header.substring(0, header.length - 1);
+    }
+
+    return tablesToFields;
+
+  };
+
+  /**
+   * Retrieves the header line for a given table name, from a set of converted field definitions
+   *
+   * @see module:ibm-imam-cli~convertColumnDefinitionsToFieldDefinitions
+   * @param {FieldDefinitions} fieldDefinitions - the set of converted field definitions from convertColumnDefinitionsToFieldDefinitions
+   * @param {string} tblName - the name of the table for which to get the header line
+   * @param {string} [delimiter] - an optional delimiter to use (by default a |) -- not yet implemented
+   * @returns String with the header line for a data file that will be IMAM-importable
+   */
+  // TODO: allow the delimiter to vary...
+  const getHeaderLineForTable = function(fieldDefinitions, tblName, delimiter) {
+    //if (typeof delimiter !== 'undefined' && delimiter !== "") {
+    //  return fieldDefinitions[tblName].header.replace(/\|/g, delimiter);
+    //} else {
+      return fieldDefinitions[tblName].header;
+    //}
+  };
+
   return {
     createOrUpdateImportArea: createOrUpdateImportArea,
     getImportAreaList: getImportAreaList,
     getTemplateForBridge: getTemplateForBridge,
     buildParameterXML: buildParameterXML,
     loadMetadata: loadMetadata,
-    getProjectParamsFromMetadataParams: getProjectParamsFromMetadataParams
+    getProjectParamsFromMetadataParams: getProjectParamsFromMetadataParams,
+    convertColumnDefinitionsToFieldDefinitions: convertColumnDefinitionsToFieldDefinitions,
+    getHeaderLineForTable: getHeaderLineForTable
   };
 
 })();
@@ -544,4 +594,5 @@ module.exports = ImamCLI;
 if (typeof require === 'function') {
   exports.ImportParameters = ImportParameters;
   exports.BridgeFactory = BridgeFactory;
+  exports.FileSchemaFactory = FileSchemaFactory;
 }
