@@ -527,22 +527,14 @@ const ImamCLI = (function() {
    * @param {string} ddlFile - path to the DDL file containing one or more CREATE TABLE statements
    * @returns FieldDefinitions with table names as keys, each being a sub-object with a 'header' (String) and 'columns' (String[]) properties
    */
-  const convertColumnDefinitionsToFieldDefinitions = function(ddlFile) {
+  const getColumnDefinitionsFromDDL = function(ddlFile) {
 
     const aCreateTbls = FileSchemaFactory.getCreateTableStatementsFromDDL(ddlFile);
     const tablesToFields = {};
 
     for (let i = 0; i < aCreateTbls.length; i++) {
       const tblObj = FileSchemaFactory.getColumnDefinitionsFromCreateTableStatement(aCreateTbls[i]);
-      tablesToFields[tblObj.table] = {};
-      tablesToFields[tblObj.table].columns = [];
-      let header = "";
-      for (let j = 0; j < tblObj.columns.length; j++) {
-        const colDefn = FileSchemaFactory.convertColumnDefinitionToFileSchemaFieldDefinition(tblObj.columns[j]);
-        header += colDefn + "|";
-        tablesToFields[tblObj.table].columns.push(colDefn);
-      }
-      tablesToFields[tblObj.table].header = header.substring(0, header.length - 1);
+      tablesToFields[tblObj.table] = tblObj.columns;
     }
 
     return tablesToFields;
@@ -552,21 +544,71 @@ const ImamCLI = (function() {
   /**
    * Retrieves the header line for a given table name, from a set of converted field definitions
    *
-   * @see module:ibm-imam-cli~convertColumnDefinitionsToFieldDefinitions
-   * @param {FieldDefinitions} fieldDefinitions - the set of converted field definitions from convertColumnDefinitionsToFieldDefinitions
+   * @see module:ibm-imam-cli~getColumnDefinitionsFromDDL
+   * @param {FieldDefinitions} tablesToFields - the set of converted field definitions from getColumnDefinitionsFromDDL
    * @param {string} tblName - the name of the table for which to get the header line
    * @param {string} [delimiter] - an optional delimiter to use (by default a |)
    * @returns String with the header line for a data file that will be IMAM-importable
    */
-  const getHeaderLineForTable = function(fieldDefinitions, tblName, delimiter) {
+  const getHeaderLineForTable = function(tablesToFields, tblName, delimiter) {
+
     const ucaseTblName = tblName.toUpperCase();
-    if (!fieldDefinitions.hasOwnProperty(ucaseTblName)) {
+    if (!tablesToFields.hasOwnProperty(ucaseTblName)) {
       throw new Error("Unable to find table name: " + ucaseTblName);
-    } else if (typeof delimiter !== 'undefined' && delimiter !== "" && delimiter !== "|") {
-      return fieldDefinitions[ucaseTblName].header.replace(/\|/g, delimiter);
-    } else {
-      return fieldDefinitions[ucaseTblName].header;
     }
+    if (delimiter === undefined || delimiter === null || delimiter === "") {
+      delimiter = "|";
+    }
+
+    const fieldDefinitions = tablesToFields[ucaseTblName];
+    let header = "";
+    for (let i = 0; i < fieldDefinitions.length; i++) {
+      const colDefn = FileSchemaFactory.convertColumnDefinitionToFileSchemaFieldDefinition(fieldDefinitions[i]);
+      header += colDefn + delimiter;
+    }
+
+    return header.substring(0, header.length - 1);
+
+  };
+
+  /**
+   * Creates the contents for an OSH schema file for a given table name, from a set of converted field definitions
+   *
+   * @see module:ibm-imam-cli~getColumnDefinitionsFromDDL
+   * @param {FieldDefinitions} tablesToFields - the set of converted field definitions from getColumnDefinitionsFromDDL
+   * @param {string} tblName - the name of the table for which to create the OSH schema file
+   * @param {string} [delimiter] - an optional delimiter to use (by default a |)
+   * @param {boolean} [bHeader] - true if there is a header in the data file, false otherwise
+   * @param {string} [escape] - the string that should be treated as an escape sequence for the delimiter (e.g. a double-quote)
+   * @returns String with the contents for an OSH schema file that will be IMAM-importable
+   */
+  const getOSHSchemaForTable = function(tablesToFields, tblName, delimiter, bHeader, escape) {
+
+    let oshSchema = "// FileStructure: file_format='delimited'";
+    oshSchema += bHeader ? ", header='true'" : ", header='false'";
+    if (escape !== undefined && escape !== null) {
+      oshSchema += ", escape=";
+      oshSchema += escape.length > 1 ? "\"" + escape + "\"" : "'" + escape + "'";
+    }
+    oshSchema += "\n" +
+      "record { record_delim='\\n', delim='" + ((delimiter === undefined || delimiter === null) ? "|" : delimiter) + "', final_delim=end, null_field='' } (";
+
+    const ucaseTblName = tblName.toUpperCase();
+    if (!tablesToFields.hasOwnProperty(ucaseTblName)) {
+      throw new Error("Unable to find table name: " + ucaseTblName);
+    }
+
+    const fieldDefinitions = tablesToFields[ucaseTblName];
+    for (let i = 0; i < fieldDefinitions.length; i++) {
+      const colDefn = FileSchemaFactory.convertColumnDefinitionToOSHSchemaFieldDefinition(fieldDefinitions[i]);
+      oshSchema += "\n" +
+        "    " + colDefn;
+    }
+
+    oshSchema += "\n" +
+      ")";
+    return oshSchema;
+
   };
 
   return {
@@ -576,8 +618,9 @@ const ImamCLI = (function() {
     buildParameterXML: buildParameterXML,
     loadMetadata: loadMetadata,
     getProjectParamsFromMetadataParams: getProjectParamsFromMetadataParams,
-    convertColumnDefinitionsToFieldDefinitions: convertColumnDefinitionsToFieldDefinitions,
-    getHeaderLineForTable: getHeaderLineForTable
+    getColumnDefinitionsFromDDL: getColumnDefinitionsFromDDL,
+    getHeaderLineForTable: getHeaderLineForTable,
+    getOSHSchemaForTable: getOSHSchemaForTable
   };
 
 })();

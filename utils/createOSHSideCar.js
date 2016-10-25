@@ -19,21 +19,20 @@
 "use strict";
 
 /**
- * @file Pre-pends a header row to a data file that allows it to be importable via IMAM
+ * @file Creates an OSH schema sidecar file for the provided data file, allowing it to be importable via IMAM
  * @license Apache-2.0
  * @requires ibm-imam-cli
- * @requires prepend-file
  * @requires shelljs
  * @requires yargs
  * @example
- * // injects a header into TableName.dat based on the table definition (for the table TableName) in the FileContainingDDL.sql
- * ./addHeaderToDataFile.js -f TableName.dat -s FileContainingDDL.sql
+ * // creates an OSH schema sidecar for TableName.dat based on the table definition (for the table TableName) in the FileContainingDDL.sql
+ * ./createOSHSideCar.js -f TableName.dat -s FileContainingDDL.sql
  */
 
 const imamcli = require('../');
-const prependFile = require('prepend-file');
 const shell = require('shelljs');
 const path = require('path');
+const fs = require('fs');
 
 // Command-line setup
 const yargs = require('yargs');
@@ -46,7 +45,7 @@ const argv = yargs
     })
     .option('f', {
       alias: 'file',
-      describe: 'Path to data file that should have header injected',
+      describe: 'Path to data file for which sidecar should be created',
       demand: true, requiresArg: true, type: 'string'
     })
     .option('d', {
@@ -60,30 +59,24 @@ const argv = yargs
     .wrap(yargs.terminalWidth())
     .argv;
 
-if (argv.delimiter === ":") {
-  throw new Error("Cannot use ':' as a delimiter -- it is a reserved character for the schema definition.");
-}
-
 const tableName = path.basename(argv.file, path.extname(argv.file));
-let header = "";
+const sidecarName = argv.file + ".osh";
+
+let oshSchema = "";
 if (typeof argv.sql !== 'undefined' && argv.sql !== null) {
   const tablesToFields = imamcli.getColumnDefinitionsFromDDL(argv.sql);
-  header = imamcli.getHeaderLineForTable(tablesToFields, tableName, argv.delimiter);
+  oshSchema = imamcli.getOSHSchemaForTable(tablesToFields, tableName, argv.delimiter);
 } else {
-  // Setup a default header, treating everything as a string, if there is no table definition to pull from somewhere
+  // Setup a default schema, treating everything as a string, if there is no table definition to pull from somewhere
   const firstLine = shell.head({'-n': 1}, argv.file);
   const aFields = firstLine.split(argv.delimiter);
+  oshSchema = "// FileStructure: file_format='delimited', header='false'\n" +
+      "record { record_delim='\\n', delim='" + ((argv.delimiter === undefined || argv.delimiter === null) ? "|" : argv.delimiter) + "', final_delim=end, null_field='' } (\n";
   for (let i = 0; i < aFields.length; i++) {
-    header += "C" + (i + 1) + ":NVarChar" + argv.delimiter;
+    oshSchema += "    C" + (i + 1) + ": string[max=255];\n";
   }
-  header = header.substring(0, header.length - argv.delimiter.length);
+  oshSchema += ")";
 }
 
-prependFile(argv.file, header + "\n", function(err) {
-  if (err) {
-    console.error("ERROR: Prepending failed -- " + err);
-    process.exit(1);
-  } else {
-    console.log('Successfully injected heading for table ' + tableName + " into " + argv.file);
-  }
-});
+fs.writeFileSync(sidecarName, oshSchema, 'utf8');
+console.log('Successfully created side-car for table ' + tableName + " into " + sidecarName);

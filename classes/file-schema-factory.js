@@ -55,6 +55,38 @@ class FileSchemaFactory {
     return sqlTypeToFileType[ucaseSQL] + sqlTypeLength;
   }
 
+  static getOSHSchemaTypeForSQLType(sqlType) {
+    const bHasLength = (sqlType.indexOf("(") > 0);
+    let sqlTypeAlone = sqlType;
+    let sqlTypeLength = "";
+    if (bHasLength) {
+      sqlTypeAlone = sqlType.substring(0, sqlType.indexOf("("));
+      sqlTypeLength = sqlType.substring(sqlType.indexOf("(") + 1, sqlType.indexOf(")"));
+    }
+    const ucaseSQL = sqlTypeAlone.toUpperCase();
+    const sqlTypeToFileType = {
+      "CHAR": "string",
+      "DATE": "date",
+      "DECIMAL": "decimal",
+      "INTEGER": "int64",
+      "TIME": "time",
+      "TIMESTAMP": "timestamp",
+      "VARCHAR": "string",
+    };
+    if (!sqlTypeToFileType.hasOwnProperty(ucaseSQL)) {
+      throw new Error("Unsupported SQL data type: " + ucaseSQL);
+    }
+    let oshSchemaType = sqlTypeToFileType[ucaseSQL];
+    if (sqlTypeLength !== "") {
+      if (oshSchemaType === "string") {
+        oshSchemaType += "[max=" + sqlTypeLength + "]";
+      } else {
+        oshSchemaType += "[" + sqlTypeLength + "]";
+      }
+    }
+    return oshSchemaType;
+  }
+
   static getCreateTableStatementsFromDDL(ddlFile) {
     const tblStatments = [];
     const ddlString = fs.readFileSync(ddlFile, 'utf8');
@@ -121,6 +153,28 @@ class FileSchemaFactory {
     }
 
     return colName + ":" + FileSchemaFactory.getFileTypeForSQLType(colType) + " " + extras;
+
+  }
+
+  static convertColumnDefinitionToOSHSchemaFieldDefinition(ddlCol) {
+
+    let remainder = ddlCol;
+    const colName = remainder.substring(0, remainder.indexOf(" "));
+    remainder     = remainder.substring(colName.length).trim();
+    let colType = remainder;
+    let extras = "";
+    if (remainder.indexOf(" ") > 0) {
+      colType = remainder.substring(0, remainder.indexOf(" "));
+      extras = remainder.substring(colType.length).trim();
+    }
+
+    if (extras === "NOT NULL") {
+      extras = "not nullable";
+    } else {
+      extras = "nullable";
+    }
+
+    return colName + ": " + extras + " " + FileSchemaFactory.getOSHSchemaTypeForSQLType(colType) + ";";
 
   }
 
