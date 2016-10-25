@@ -70,6 +70,10 @@ class FileSchemaFactory {
       } else if (!line.startsWith("--") && line !== "") {
         currentTableDef += line.replace(/\s\s+/g, ' ');
       }
+      // Also ensure the very last create table statement is included
+      if (aLinesDDL.length === (i + 1) && currentTableDef.startsWith("CREATE TABLE")) {
+        tblStatments.push(currentTableDef);
+      }
     }
     return tblStatments;
   }
