@@ -83,12 +83,6 @@ class FileSchemaFactory {
       } else {
         oshSchemaType += "[" + sqlTypeLength + "]";
       }
-    } else if (oshSchemaType === "date") {
-      oshSchemaType += " { date_format='%yyyy-%mm-%dd' }";
-    } else if (oshSchemaType === "time") {
-      oshSchemaType += " { time_format='%hh:%nn:%ss' }";
-    } else if (oshSchemaType === "timestamp") {
-      oshSchemaType += " { timestamp_format='%yyyy-%mm-%dd %hh:%nn:%ss' }";
     }
     return oshSchemaType;
   }

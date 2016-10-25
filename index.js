@@ -591,7 +591,7 @@ const ImamCLI = (function() {
       oshSchema += escape.length > 1 ? "\"" + escape + "\"" : "'" + escape + "'";
     }
     oshSchema += "\n" +
-      "record { record_delim='\\n', delim='" + ((delimiter === undefined || delimiter === null) ? "|" : delimiter) + "', final_delim=end, null_field='' } (";
+      "record { record_delim='\\n', delim='" + ((delimiter === undefined || delimiter === null) ? "|" : delimiter) + "', final_delim=end, null_field='', date_format='%yyyy-%mm-%dd', time_format='%hh:%nn:%ss', timestamp_format='%yyyy-%mm-%dd %hh:%nn:%ss' } (";
 
     const ucaseTblName = tblName.toUpperCase();
     if (!tablesToFields.hasOwnProperty(ucaseTblName)) {
