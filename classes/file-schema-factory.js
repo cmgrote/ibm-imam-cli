@@ -56,6 +56,7 @@ class FileSchemaFactory {
   }
 
   static getOSHSchemaTypeForSQLType(sqlType) {
+    // http://www.ibm.com/support/knowledgecenter/en/SSZJPZ_11.5.0/com.ibm.swg.im.iis.ds.parjob.adref.doc/topics/r_deeadvrf_ImportExport_Properties.html
     const bHasLength = (sqlType.indexOf("(") > 0);
     let sqlTypeAlone = sqlType;
     let sqlTypeLength = "";
