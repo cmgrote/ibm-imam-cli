@@ -6,7 +6,7 @@
 
 ## ImamCLI
 
-Re-usable functions for interacting with IMAM via the command-line
+Re-usable functions for interacting with Metadata Asset Manager via the command-line
 
 **Meta**
 

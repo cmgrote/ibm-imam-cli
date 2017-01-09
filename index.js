@@ -27,7 +27,7 @@ const FileSchemaFactory = require('./classes/file-schema-factory');
 const ImportParameters = require('./classes/import-parameters');
 
 /**
- * @file Re-usable functions for interacting with IMAM via the command-line
+ * @file Re-usable functions for interacting with Metadata Asset Manager via the command-line
  * @license Apache-2.0
  * @requires xmldom
  * @requires shelljs
