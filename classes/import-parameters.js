@@ -16,13 +16,6 @@
 
 "use strict";
 
-/**
- * @file ImportParameters class -- for encapsulating parameters for creating an import area in IMAM
- * @license Apache-2.0
- * @requires xmldom
- * @requires shelljs
- */
-
 const xmldom = require('xmldom');
 const shell = require('shelljs');
 const BridgeFactory = require('./bridge-factory');
@@ -35,7 +28,8 @@ function _getValueOrDefault(val, def) {
 }
 
 /**
- * @namespace
+ * ImportParameters class -- for encapsulating parameters for creating an import area in IMAM
+ * @license Apache-2.0
  */
 class ImportParameters {
 

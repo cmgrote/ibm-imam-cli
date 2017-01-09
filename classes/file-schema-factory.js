@@ -16,15 +16,11 @@
 
 "use strict";
 
-/**
- * @file FileSchemaFactory class -- for encapsulating information about creating a schema heading for files
- * @license Apache-2.0
- */
-
 const fs = require('fs');
 
 /**
- * @namespace
+ * FileSchemaFactory class -- for encapsulating information about creating a schema heading for files
+ * @license Apache-2.0
  */
 class FileSchemaFactory {
 

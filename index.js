@@ -16,21 +16,6 @@
 
 "use strict";
 
-/**
- * @file Re-usable functions for interacting with IMAM via the command-line
- * @license Apache-2.0
- * @requires xmldom
- * @requires xpath
- * @requires shelljs
- * @requires fs-extra
- * @requires pretty-data
- * @requires exceljs
- */
-
-/**
- * @module ibm-imam-cli
- */
-
 const xmldom = require('xmldom');
 const shell = require('shelljs');
 const fs = require('fs-extra');
@@ -41,6 +26,19 @@ const BridgeFactory = require('./classes/bridge-factory');
 const FileSchemaFactory = require('./classes/file-schema-factory');
 const ImportParameters = require('./classes/import-parameters');
 
+/**
+ * @file Re-usable functions for interacting with IMAM via the command-line
+ * @license Apache-2.0
+ * @requires xmldom
+ * @requires shelljs
+ * @requires fs-extra
+ * @requires pretty-data
+ * @requires exceljs
+ */
+
+/**
+ * @module ibm-imam-cli
+ */
 const ImamCLI = (function() {
 
   /**
