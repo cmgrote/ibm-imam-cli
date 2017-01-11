@@ -29,7 +29,7 @@
  * ./ingestMetadata.js -f Example.xlsx
  */
 
-const imamcli = require('../');
+const imamcli = require('ibm-imam-cli');
 const commons = require('ibm-iis-commons');
 
 // Command-line setup

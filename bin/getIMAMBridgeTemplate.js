@@ -28,7 +28,7 @@
  * ./getBridgeTemplate.js -f BridgeTemplate.xlsx
  */
 
-const imamcli = require('../');
+const imamcli = require('ibm-imam-cli');
 const BridgeFactory = require('../classes/bridge-factory');
 
 // Command-line setup
