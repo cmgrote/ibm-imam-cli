@@ -7,7 +7,6 @@
     "index.js",
     "docs",
     "classes",
-    "utils",
     "LICENSE"
   ],
   "dependencies": {
