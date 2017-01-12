@@ -20,7 +20,6 @@ const fs = require('fs');
 
 /**
  * FileSchemaFactory class -- for encapsulating information about creating a schema heading for files
- * @license Apache-2.0
  */
 class FileSchemaFactory {
 

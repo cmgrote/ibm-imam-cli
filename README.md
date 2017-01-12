@@ -119,10 +119,6 @@ Type: [Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Referen
 
 BridgeFactory class -- for encapsulating information about metadata bridges and creating them when requested
 
-**Meta**
-
--   **license**: Apache-2.0
-
 ### getImplementedBridges
 
 Retrieves a list of the bridges that can currently be handled by this module
@@ -133,17 +129,9 @@ Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refere
 
 FileSchemaFactory class -- for encapsulating information about creating a schema heading for files
 
-**Meta**
-
--   **license**: Apache-2.0
-
 ## ImportParameters
 
 ImportParameters class -- for encapsulating parameters for creating an import area in IMAM
-
-**Meta**
-
--   **license**: Apache-2.0
 
 ### getImportParametersDoc
 

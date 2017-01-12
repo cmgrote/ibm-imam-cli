@@ -29,7 +29,6 @@ function _getValueOrDefault(val, def) {
 
 /**
  * ImportParameters class -- for encapsulating parameters for creating an import area in IMAM
- * @license Apache-2.0
  */
 class ImportParameters {
 

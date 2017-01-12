@@ -18,7 +18,6 @@
 
 /**
  * BridgeFactory class -- for encapsulating information about metadata bridges and creating them when requested
- * @license Apache-2.0
  */
 class BridgeFactory {
 
