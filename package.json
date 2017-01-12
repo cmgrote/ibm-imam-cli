@@ -1,6 +1,6 @@
 {
   "name": "ibm-imam-cli",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Library to interact with IBM Metadata Asset Manager from the command-line",
   "main": "./index.js",
   "files": [
