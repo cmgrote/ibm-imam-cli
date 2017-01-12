@@ -27,17 +27,14 @@ const FileSchemaFactory = require('./classes/file-schema-factory');
 const ImportParameters = require('./classes/import-parameters');
 
 /**
- * @file Re-usable functions for interacting with Metadata Asset Manager via the command-line
+ * Re-usable functions for interacting with Metadata Asset Manager via the command-line
+ * @module ibm-imam-cli
  * @license Apache-2.0
  * @requires xmldom
  * @requires shelljs
  * @requires fs-extra
  * @requires pretty-data
  * @requires exceljs
- */
-
-/**
- * @module ibm-imam-cli
  */
 const ImamCLI = (function() {
 

@@ -4,8 +4,6 @@
 
 ## ibm-imam-cli
 
-## ImamCLI
-
 Re-usable functions for interacting with Metadata Asset Manager via the command-line
 
 **Meta**
