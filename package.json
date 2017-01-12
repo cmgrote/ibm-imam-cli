@@ -24,7 +24,7 @@
     "mocha": "^2.4.5"
   },
   "bin": {
-    "getIMAMBridgeTemplate": "bin/getIMAMBridgeTemaplte.js",
+    "getIMAMBridgeTemplate": "bin/getIMAMBridgeTemplate.js",
     "ingestMetadataFromIMAMBridgeXLS": "bin/ingestMetadataFromIMAMBridgeXLS.js"
   },
   "engines": {
