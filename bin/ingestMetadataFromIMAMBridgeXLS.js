@@ -51,10 +51,7 @@ const argv = yargs
     .wrap(yargs.terminalWidth())
     .argv;
 
-const envCtx = new commons.EnvironmentContext();
-if (argv.authfile !== undefined && argv.authfile !== "") {
-  envCtx.authFile = argv.authfile;
-}
+const envCtx = new commons.EnvironmentContext(null, argv.authfile);
 
 imamcli.loadMetadata(envCtx, argv.file, function(results) {
   if (results.code === 0) {
