@@ -17,7 +17,6 @@
 "use strict";
 
 const xmldom = require('xmldom');
-const shell = require('shelljs');
 const fs = require('fs-extra');
 const pd = require('pretty-data').pd;
 const Excel = require('exceljs');
@@ -31,7 +30,6 @@ const ImportParameters = require('./classes/import-parameters');
  * @module ibm-imam-cli
  * @license Apache-2.0
  * @requires xmldom
- * @requires shelljs
  * @requires fs-extra
  * @requires pretty-data
  * @requires exceljs
@@ -50,7 +48,7 @@ const ImamCLI = (function() {
     }
     cmd = cmd + " " + command;
     //console.log("Calling: " + cmd);
-    return shell.exec(cmd, {silent: true, "shell": "/bin/bash"});
+    return envCtx.runInfoSvrCommand(cmd);
   }
 
   /**
@@ -72,10 +70,11 @@ const ImamCLI = (function() {
     if (bCreate) {
       const paramFile = "/tmp/" + name.replace(" ", "_") + ".xml";
       buildParameterXML(envCtx, paramFile, bridgeName, dcnParams, bridgeParams);
+      envCtx.copyFile(paramFile, paramFile); // Necessary to ensure it is on the remote server (if server is remote)
       console.log("Creating new import area '" + name + "' with: " + paramFile);
-      result = _callCLI(envCtx, "-a import -i " + name + " -ad \"" + description + "\" -id \"Initial import on " + new Date() + "\" -pf " + paramFile);
+      result = _callCLI(envCtx, "-a import -i " + name + " -ad '" + description + "' -id 'Initial import on " + new Date() + "' -pf " + paramFile);
       if (result.code === 0) {
-        shell.rm(paramFile);
+        envCtx.removeFile(paramFile);
       }
     } else {
       console.log("Re-importing existing area '" + name + "'.");

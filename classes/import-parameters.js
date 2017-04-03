@@ -17,7 +17,6 @@
 "use strict";
 
 const xmldom = require('xmldom');
-const shell = require('shelljs');
 const BridgeFactory = require('./bridge-factory');
 
 /**
@@ -68,7 +67,7 @@ class ImportParameters {
     const eV = this._doc.createElement("value");
     let val = null;
     if (id.toUpperCase().indexOf("PASSWORD") !== -1) {
-      const encrypted = shell.exec(this._ctx.asbhome + "/bin/encrypt.sh " + _getValueOrDefault(value, ""), {silent: true, "shell": "/bin/bash"});
+      const encrypted = this._ctx.runInfoSvrCommand(this._ctx.asbhome + "/bin/encrypt.sh " + _getValueOrDefault(value, ""));
       val = this._doc.createTextNode(encrypted.stdout.replace("\n", ""));
     } else {
       val = this._doc.createTextNode(_getValueOrDefault(value, ""));
