@@ -631,7 +631,7 @@ module.exports = ImamCLI;
  */
 
 if (typeof require === 'function') {
-  exports.ImportParameters = ImportParameters;
-  exports.BridgeFactory = BridgeFactory;
-  exports.FileSchemaFactory = FileSchemaFactory;
+  module.exports.ImportParameters = ImportParameters;
+  module.exports.BridgeFactory = BridgeFactory;
+  module.exports.FileSchemaFactory = FileSchemaFactory;
 }
